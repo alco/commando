@@ -138,7 +138,7 @@ defmodule Commando do
 
   defp format_option(opt, :mixed) do
     [format_option(opt, :short), format_option(opt, :long)]
-    |> Enum.reject(&( &1 == "" ))
+    |> Enum.reject(&( &1 in [nil, ""] ))
     |> Enum.join("|")
   end
 
