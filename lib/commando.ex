@@ -6,10 +6,13 @@ defmodule Commando do
   }
 
   @opt_defaults %{
+    kind: :string,
+    required: false,
     help: "",
   }
 
-  @cmd_defaults %{
+  @cmd_arg_defaults %{
+    optional: false,
     help: "",
   }
 
@@ -50,7 +53,7 @@ defmodule Commando do
   end
 
   def help(%{help: help, options: options}=spec, nil) do
-    option_text = "" && if options != [] do
+    option_text = if options != [] do
       "\nOptions:\n" <> format_option_list(options)
     end
 
@@ -76,14 +79,17 @@ defmodule Commando do
 
   def usage(spec, cmd \\ nil)
 
-  def usage(%{name: name, prefix: prefix, options: options}=spec, nil) do
-    option_text = format_options(options)
+  def usage(spec, nil) do
+    option_text = format_options(spec[:options], spec[:list_options])
     arg_text = cond do
-      spec[:commands] -> "<command> [<args>]"
+      spec[:commands] -> "<command> [...]"
       arguments=spec[:arguments] -> format_arguments(arguments)
       true -> ""
     end
-    "#{prefix}#{name} #{option_text} #{arg_text}"
+
+    [spec[:prefix], spec[:name], option_text, arg_text]
+    |> Enum.reject(&( &1 == "" ))
+    |> Enum.join(" ")
   end
 
   ###
@@ -94,28 +100,69 @@ defmodule Commando do
     (Enum.map(options, fn x -> inspect(x) end) |> Enum.join("\n\n"))
 
 
-  defp format_command_list(nil), do: ""
+  defp format_command_list(null) when null in [nil, []], do: ""
 
   defp format_command_list(commands),
     do: (Enum.map(commands, fn x -> inspect(x) end) |> Enum.join("\n"))
 
 
-  defp format_argument_list(nil), do: ""
+  defp format_argument_list(null) when null in [nil, []], do: ""
 
   defp format_argument_list(arguments),
     do: (Enum.map(arguments, fn x -> inspect(x) end) |> Enum.join("\n"))
 
 
-  defp format_options([]), do: ""
+  defp format_options([], _), do: ""
 
-  defp format_options(options),
-    do: (Enum.map(options, fn opt -> inspect(opt) end) |> Enum.join(" "))
+  defp format_options(_, nil), do: "[options]"
+
+  defp format_options(options, list_kind),
+    do: (Enum.map(options, &(format_option(&1, list_kind) |> wrap_option(&1, list_kind))) |> Enum.join(" "))
+
+
+  defp format_option(opt, :short) do
+    if name=opt[:short] do
+      name = "-#{name}"
+      if argname=opt[:argname], do: name = "#{name} <#{argname}>"
+      name
+    end
+  end
+
+  defp format_option(opt, :long) do
+    if name = opt[:name] do
+      name = "--#{name}"
+      if argname=opt[:argname], do: name = "#{name}=<#{argname}>"
+      name
+    end
+  end
+
+  defp format_option(opt, :mixed) do
+    [format_option(opt, :short), format_option(opt, :long)]
+    |> Enum.reject(&( &1 == "" ))
+    |> Enum.join("|")
+  end
+
+
+  defp wrap_option(null, _, _) when null in [nil, ""], do: ""
+
+  defp wrap_option(formatted, %{short: _, name: _, required: true}, :mixed),
+    do: "{#{formatted}}"
+
+  defp wrap_option(formatted, %{required: false}, _),
+    do: "[#{formatted}]"
+
+  defp wrap_option(formatted, _, _), do: formatted
 
 
   defp format_arguments([]), do: ""
 
   defp format_arguments(arguments),
-    do: (Enum.map(arguments, fn arg -> inspect(arg) end) |> Enum.join(" "))
+    do: (Enum.map(arguments, &format_argument/1) |> Enum.join(" "))
+
+
+  defp format_argument(%{name: name, optional: true}), do: "[#{name}]"
+  defp format_argument(%{name: name}), do: "<#{name}>"
+
 
   ###
 
@@ -128,7 +175,7 @@ defmodule Commando do
     do: process_definition(rest, Map.put(spec, :name, n))
 
   defp process_definition([{:prefix, p}|rest], spec) when is_binary(p),
-    do: process_definition(rest, %{spec | prefix: p <> " "})
+    do: process_definition(rest, %{spec | prefix: p})
 
   defp process_definition([{:usage, u}|rest], spec) when is_binary(u),
     do: process_definition(rest, Map.put(spec, :usage, u))
@@ -141,6 +188,9 @@ defmodule Commando do
 
   defp process_definition([{:options, opt}|rest], spec) when is_list(opt),
     do: process_definition(rest, %{spec | options: process_options(opt)})
+
+  defp process_definition([{:list_options, kind}|rest], spec) when kind in [nil, :short, :long, :mixed],
+    do: process_definition(rest, Map.put(spec, :list_options, kind))
 
   defp process_definition([{:arguments, arg}|rest], spec) when is_list(arg),
     do: process_definition(rest, Map.put(spec, :arguments, process_arguments(arg)))
@@ -171,7 +221,14 @@ defmodule Commando do
     do: compile_option(rest, Map.put(opt, :short, s))
 
   defp compile_option([{:argname, n}|rest], opt) when is_binary(n),
-    do: compile_option(rest, Map.put(opt, :argname, process_arg_name(n)))
+    do: compile_option(rest, Map.put(opt, :argname, parse_argname(n)))
+
+  defp compile_option([{:kind, kind}|rest], opt)
+    when kind in [:boolean, :integer, :float, :string],
+    do: compile_option(rest, %{opt | kind: kind})
+
+  defp compile_option([{:required, r}|rest], opt) when r in [true, false],
+    do: compile_option(rest, %{opt | required: r})
 
   defp compile_option([{:help, h}|rest], opt) when is_binary(h),
     do: compile_option(rest, %{opt | help: h})
@@ -181,7 +238,7 @@ defmodule Commando do
   end
 
 
-  defp compile_command(cmd), do: compile_command(cmd, @cmd_defaults)
+  defp compile_command(cmd), do: compile_command(cmd, @cmd_arg_defaults)
 
   defp compile_command([], cmd), do: cmd
 
@@ -202,50 +259,58 @@ defmodule Commando do
   end
 
 
-  defp compile_argument(arg), do: compile_argument(arg, %{})
+  defp compile_argument(arg), do: compile_argument(arg, @cmd_arg_defaults)
 
   defp compile_argument([], arg), do: arg
 
   defp compile_argument([{:name, n}|rest], arg) when is_binary(n),
-    do: compile_argument(rest, Map.put(arg, :name, process_arg_name(n)))
+    do: compile_argument(rest, Map.put(arg, :name, parse_argname(n)))
+
+  defp compile_argument([{:optional, o}|rest], arg) when o in [true, false],
+    do: compile_argument(rest, %{arg | optional: o})
 
   defp compile_argument([opt|_], _) do
     raise ArgumentError, message: "Unrecognized argument parameter #{inspect opt}"
   end
 
 
-  defp process_arg_name(name) do
-    name_re     = ~r/^[[:alpha:]]+$/
-    opt_name_re = ~r/^\[([[:alpha:]]+)\]$/
+  defp parse_argname(name), do: name
+    #name_re     = ~r/^[[:alpha:]]+$/
+    #opt_name_re = ~r/^\[([[:alpha:]]+)\]$/
 
-    case Regex.run(name_re, name) do
-      [^name] ->
-        {name, :required}
+    #{name, optional} = case Regex.run(name_re, name) do
+      #[^name] ->
+        #{name, false}
 
-      nil ->
-        case Regex.run(opt_name_re, name) do
-          [^name, name] ->
-            {name, :optional}
+      #nil ->
+        #case Regex.run(opt_name_re, name) do
+          #[^name, name] ->
+            #{name, true}
 
-          nil -> raise ArgumentError, message: "Bad syntax in argument name: #{inspect name}"
-        end
-    end
-  end
+          #nil -> raise ArgumentError, message: "Bad syntax in argument name: #{inspect name}"
+        #end
+    #end
+
+    #map
+    #|> Map.put(key, name)
+    #|> Map.put(:optional, optional)
+  #end
 
 
   defp validate_argument(arg=%{}) do
-    if !arg[:name] do
-      arg = Map.put(arg, :name, {"arg", :required})
+    if arg[:name] == nil do
+      arg = Map.put(arg, :name, "arg")
     end
     arg
   end
 
   defp validate_option(opt=%{}) do
-    if opt[:name] == nil and opt[:short] == nil do
+    name = opt[:name]
+    if name == nil and opt[:short] == nil do
       raise ArgumentError, message: "Option should have at least one of :name or :short: #{inspect opt}"
     end
-    if opt[:argname] == nil do
-      opt = Map.put(opt, :argname, {opt[:name], :required})
+    if opt[:argname] == nil and opt[:kind] != :boolean and name != nil do
+      opt = Map.put(opt, :argname, name)
     end
     opt
   end

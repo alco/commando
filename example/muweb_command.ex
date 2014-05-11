@@ -8,6 +8,8 @@ commands = [
     help: "Log incoming requests to stdout, optionally sending a reply back.",
     options: [
       [name: "reply_file", short: "f",
+       required: false,
+       kind: :string,
        argname: "path",
        help: """
          Send the contents of file at PATH in reponse to incoming requests.
@@ -25,9 +27,10 @@ commands = [
 
   [name: "serve",
     help: "Serve files from the specified directory, recursively.",
-    arguments: [[name: "[path]"]],
+    arguments: [[name: "path"]],
     options: [
       [name: "list", short: "l",
+       kind: :boolean,
        help: """
          For directory requests, serve HTML with the list of contents of that directory.
 
@@ -58,13 +61,14 @@ spec = Commando.new [
       #{{commands}}
     #"""},
 
+  list_options: :short,
   options: [
-    [name: "host", short: "h",
+    [name: "host", short: "h", #required: false,
      argname: "hostname",
      help: "Hostname to listen on. Accepts extended format with port, e.g. 'localhost:4000'."],
 
     [name: "port", short: "p",
-     #argname: "port",
+     kind: :integer,
      help: "Port number to listen on."],
   ],
 
