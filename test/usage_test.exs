@@ -8,9 +8,9 @@ defmodule CommandoTest.UsageTest do
   test "just arguments" do
     assert usage_args([[]]) == "tool <arg>"
     assert usage_args([[name: "path"]]) == "tool <path>"
-    assert usage_args([[name: "path", optional: true]]) == "tool [path]"
+    assert usage_args([[name: "path", optional: true]]) == "tool [<path>]"
     assert usage_args([[name: "path"], [name: "port", optional: true]])
-           == "tool <path> [port]"
+           == "tool <path> [<port>]"
   end
 
   test "just options" do
@@ -75,7 +75,7 @@ defmodule CommandoTest.UsageTest do
       arguments: [[name: "arg1"], [name: "arg2", optional: true]],
       options: [[name: "hi"], [short: "h", argname: "value"]],
       list_options: :mixed,
-    ]) == "tool [--hi=<hi>] [-h <value>] <arg1> [arg2]"
+    ]) == "tool [--hi=<hi>] [-h <value>] <arg1> [<arg2>]"
   end
 
   test "command with prefix" do
