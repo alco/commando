@@ -2,7 +2,7 @@ defmodule CommandoTest.UsageTest do
   use ExUnit.Case
 
   test "basic command" do
-    assert usage([name: "tool"]) == "tool"
+    assert usage(name: "tool") == "tool"
   end
 
   test "just arguments" do
@@ -61,6 +61,21 @@ defmodule CommandoTest.UsageTest do
       name: "tool", list_options: :mixed,
       options: [[name: "hi", short: "h", kind: :boolean, required: true]],
     ]) == "tool {-h|--hi}"
+  end
+
+  test "options and arguments" do
+    assert usage([
+      name: "tool",
+      arguments: [[]],
+      options: [[name: "hi"]],
+    ]) == "tool [options] <arg>"
+
+    assert usage([
+      name: "tool",
+      arguments: [[name: "arg1"], [name: "arg2", optional: true]],
+      options: [[name: "hi"], [short: "h", argname: "value"]],
+      list_options: :mixed,
+    ]) == "tool [--hi=<hi>] [-h <value>] <arg1> [arg2]"
   end
 
   test "command with prefix" do
