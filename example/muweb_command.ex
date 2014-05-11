@@ -40,18 +40,23 @@ commands = [
 spec = Commando.new [
   width: 80,
 
-  usage: """
-    Usage:
-      mix muweb [options] <command> [<args>]
+  name: "muweb",
+  prefix: "mix",
 
-    Single task encapsulating a set of useful commands that utilise the μWeb server.
+  help: "Single task encapsulating a set of useful commands that utilise the μWeb server.",
 
-    Options (available for all commands except "help"):
-      {{options}}
+  #help: {:full, """
+    #Usage:
+      #mix muweb [options] <command> [<args>]
 
-    Commands:
-      {{commands}}
-    """,
+    #Single task encapsulating a set of useful commands that utilise the μWeb server.
+
+    #Options (available for all commands except "help"):
+      #{{options}}
+
+    #Commands:
+      #{{commands}}
+    #"""},
 
   options: [
     [name: "host", short: "h",
@@ -70,8 +75,10 @@ defmodule MuWebCommand do
   @cmd_spec spec
 
   def run(args) do
-    {opts, args} = parse_args(args)
+    {_opts, _args} = parse_args(args)
   end
+
+  def help(), do: Commando.help(@cmd_spec)
 
   defp parse_args(args) do
     IO.inspect @cmd_spec
@@ -81,3 +88,6 @@ defmodule MuWebCommand do
     end
   end
 end
+
+#MuWebCommand.run(System.argv)
+IO.puts MuWebCommand.help()
