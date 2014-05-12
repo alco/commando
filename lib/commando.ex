@@ -120,8 +120,8 @@ defmodule Commando do
 
   defp format_option_list([]), do: ""
 
-  defp format_option_list(options), do:
-    (Enum.map(options, fn x -> inspect(x) end) |> Enum.join("\n\n"))
+  defp format_option_list(options),
+    do: (Enum.map(options, &format_option_help/1) |> Enum.join("\n\n"))
 
 
   defp format_command_list(null) when null in [nil, []], do: ""
@@ -164,6 +164,16 @@ defmodule Commando do
     [format_option(opt, :short), format_option(opt, :long)]
     |> Enum.reject(&( &1 in [nil, ""] ))
     |> Enum.join("|")
+  end
+
+
+  defp format_option_help(opt=%{help: help}) do
+    opt_str =
+      [format_option(opt, :short), format_option(opt, :long)]
+      |> Enum.reject(&( &1 in [nil, ""] ))
+      |> Enum.join(", ")
+    if help == "", do: help = "(no documentation)"
+    "  #{opt_str}\n    #{help}"
   end
 
 

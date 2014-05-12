@@ -50,22 +50,42 @@ defmodule CommandoTest.HelpTest do
     assert help([
       name: "tool", options: [[name: "hi", help: "This is a hi option."]],
     ]) == """
-    Usage:
-      tool [options]
+      Usage:
+        tool [options]
 
-    Options:
-      --hi=<hi>
-        This is a hi option.
-    """
+      Options:
+        --hi=<hi>
+          This is a hi option.
+      """
 
     assert help([
-      name: "tool", list_options: :all, options: [[name: "hi"], [short: "h"]],
-    ]) == "tool [-h]"
+      name: "tool", list_options: :all, options: [[name: "hi"], [short: "h", help: "A short one."]],
+    ]) == """
+      Usage:
+        tool [--hi=<hi>] [-h]
+
+      Options:
+        --hi=<hi>
+          (no documentation)
+
+        -h
+          A short one.
+      """
 
     assert help([
       name: "tool", list_options: :all, options: [[name: "hi", short: "h"],
                                                   [short: "p"]],
-    ]) == "tool [--hi=<hi>]"
+    ]) == """
+      Usage:
+        tool [-h <hi>|--hi=<hi>] [-p]
+
+      Options:
+        -h <hi>, --hi=<hi>
+          (no documentation)
+
+        -p
+          (no documentation)
+      """
   end
 
   #test "options and arguments" do
