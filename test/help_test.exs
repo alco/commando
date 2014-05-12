@@ -130,7 +130,7 @@ defmodule CommandoTest.HelpTest do
   test "subcommands" do
     spec = [
       name: "tool",
-      options: [[name: "log", kind: :boolean], [short: "v"]],
+      options: [[name: "log", valtype: :boolean], [short: "v"]],
       commands: [
         [name: "cmda",
          help: "This is command A. It is very practical",
@@ -209,7 +209,7 @@ defmodule CommandoTest.HelpTest do
         Commands:
         {{commands}}
         """},
-      options: [[name: "log", kind: :boolean], [short: "v"]],
+      options: [[name: "log", valtype: :boolean], [short: "v"]],
       commands: [
         [name: "cmda",
          help: "This is command A. It is very practical",

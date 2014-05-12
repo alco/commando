@@ -44,22 +44,22 @@ defmodule CommandoTest.UsageTest do
 
     assert usage([
       name: "tool", list_options: :all,
-      options: [[name: "hi", short: "h", kind: :boolean]],
+      options: [[name: "hi", short: "h", valtype: :boolean]],
     ]) == "tool [-h|--hi]"
 
     assert usage([
       name: "tool", list_options: :short,
-      options: [[name: "hi", short: "h", kind: :boolean, required: true]],
+      options: [[name: "hi", short: "h", valtype: :boolean, required: true]],
     ]) == "tool -h"
 
     assert usage([
       name: "tool", list_options: :long,
-      options: [[name: "hi", short: "h", kind: :boolean, required: true]],
+      options: [[name: "hi", short: "h", valtype: :boolean, required: true]],
     ]) == "tool --hi"
 
     assert usage([
       name: "tool", list_options: :all,
-      options: [[name: "hi", short: "h", kind: :boolean, required: true]],
+      options: [[name: "hi", short: "h", valtype: :boolean, required: true]],
     ]) == "tool {-h|--hi}"
   end
 
@@ -95,7 +95,7 @@ defmodule CommandoTest.UsageTest do
     spec = [
       prefix: "pre",
       name: "tool",
-      options: [[name: "log", kind: :boolean], [short: "v"]],
+      options: [[name: "log", valtype: :boolean], [short: "v"]],
       commands: [
         [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
         [name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
@@ -117,7 +117,7 @@ defmodule CommandoTest.UsageTest do
   test "autohelp subcommand" do
     spec = [
       name: "tool",
-      options: [[name: "log", kind: :boolean], [short: "v"]],
+      options: [[name: "log", valtype: :boolean], [short: "v"]],
       commands: [
         :help,
         [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],

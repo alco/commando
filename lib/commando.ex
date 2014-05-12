@@ -1,3 +1,11 @@
+defmodule Commando.Cmd do
+  defstruct [
+    options: [],
+    arguments: [],
+    subcmd: nil,
+  ]
+end
+
 defmodule Commando do
   @spec_defaults %{
     width: 40,
@@ -6,7 +14,7 @@ defmodule Commando do
   }
 
   @opt_defaults %{
-    kind: :string,
+    valtype: :string,
     required: false,
     help: "",
   }
@@ -29,16 +37,15 @@ defmodule Commando do
   """
   def parse(spec, args \\ System.argv) do
     {switches, aliases} = spec_to_parser_opts(spec)
-    case OptionParser.parse_head(args, switches: switches, aliases: aliases) do
+    opts = [switches: switches, aliases: aliases]
+    {opts, args} = case OptionParser.parse_head(args, opts) do
       {_, _, invalid} when invalid != [] ->
         raise RuntimeError, message: "Bad options: #{inspect invalid}"
 
-      {opts, ["--"|args], []} ->
-        postprocess_opts_and_args(opts, args)
-
-      {opts, args, []} ->
-        postprocess_opts_and_args(opts, args)
+      {opts, ["--"|args], []} -> {opts, args}
+      {opts, args, []}        -> {opts, args}
     end
+    postprocess_opts_and_args(spec, opts, args)
   end
 
   @doc """
@@ -293,9 +300,13 @@ defmodule Commando do
   defp compile_option([{:argname, n}|rest], opt) when is_binary(n),
     do: compile_option(rest, Map.put(opt, :argname, parse_argname(n)))
 
-  defp compile_option([{:kind, kind}|rest], opt)
-    when kind in [:boolean, :integer, :float, :string],
-    do: compile_option(rest, %{opt | kind: kind})
+  defp compile_option([{:valtype, t}|rest], opt)
+    when t in [:boolean, :integer, :float, :string],
+    do: compile_option(rest, %{opt | valtype: t})
+
+  defp compile_option([{:multival, kind}|rest], opt)
+    when kind in [:overwrite, :keep, :accumulate, :error],
+    do: compile_option(rest, Map.put(opt, :multival, kind))
 
   defp compile_option([{:required, r}|rest], opt) when r in [true, false],
     do: compile_option(rest, %{opt | required: r})
@@ -397,7 +408,7 @@ defmodule Commando do
       msg = "Option should have at least one of :name or :short: #{inspect opt}"
       raise ArgumentError, message: msg
     end
-    if opt[:argname] == nil and opt[:kind] != :boolean and name != nil do
+    if opt[:argname] == nil and opt[:valtype] != :boolean and name != nil do
       opt = Map.put(opt, :argname, name)
     end
     opt
@@ -424,27 +435,58 @@ defmodule Commando do
       msg = "Options :commands and :arguments are incompatible with each other"
       raise ArgumentError, message: msg
     end
-    if spec[:usage] == nil and spec[:help] == nil do
+    if spec[:usage] == nil and spec[:help] == nil, do:
       spec = Map.put(spec, :help, "")
-    end
     spec
   end
 
   ###
 
   defp spec_to_parser_opts(spec=%{options: opt}) do
-    {switches, aliases} = Enum.reduce(opt, {[], []}, fn opt, {switches, aliases} ->
+    Enum.reduce(opt, {[], []}, fn opt, {switches, aliases} ->
       IO.puts "transformng opt #{inspect opt}"
-      arg_is_optional = match?({_, :optional}, opt[:argname])
-      if short = opt[:short] do
-        name = binary_to_atom(opt[:name] || short)
-        aliases = aliases ++ [{binary_to_atom(short), name}]
+
+      opt_name = opt_name_to_atom(opt)
+      kind = []
+
+      if valtype=opt[:valtype], do:
+        kind = [valtype|kind]
+      case opt[:multival] do
+        default when default in [nil, :overwrite] ->
+          nil
+        keep when keep in [:keep, :accumulate, :error] ->
+          kind = [:keep|kind]
       end
+      if kind != [], do:
+        switches = [{opt_name, kind}|switches]
+
+      if short=opt[:short], do:
+        aliases = [{binary_to_atom(short), opt_name}|aliases]
+
       {switches, aliases}
     end)
   end
 
-  defp postprocess_opts_and_args(opts, args) do
+  defp postprocess_opts_and_args(spec, opts, args) do
     IO.puts "Post-processing #{inspect opts} and #{inspect args}"
+    # 1. Check if there are any extraneous switches
+    option_set = Enum.map(spec[:options], &opt_name_to_atom/1) |> Enum.into(%{})
+    Enum.each(opts, fn {name, _} ->
+      if !option_set[name] do
+        raise RuntimeError, message: "Unrecognized option: #{inspect name}"
+      end
+    end)
+
+    %Commando.Cmd{
+      options: opts,
+      arguments: args,
+    }
+
+    # 2. Check all options for consistency with the spec
+    # 3. Check arguments
+    # 4. If it is a command, continue parsing the command
   end
+
+  defp opt_name_to_atom(opt),
+    do: binary_to_atom(opt[:name] || opt[:short])
 end
