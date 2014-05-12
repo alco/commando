@@ -284,7 +284,8 @@ defmodule Commando do
     do: Enum.map(cmd, &(compile_command(&1) |> validate_command()))
 
   defp process_arguments(arg),
-    do: Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
+    do: (Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
+         |> validate_arguments())
 
 
   defp compile_option(opt), do: compile_option(opt, @opt_defaults)
@@ -395,33 +396,6 @@ defmodule Commando do
   #end
 
 
-  defp validate_argument(arg=%{}) do
-    if arg[:name] == nil do
-      arg = Map.put(arg, :name, "arg")
-    end
-    arg
-  end
-
-  defp validate_option(opt=%{}) do
-    name = opt[:name]
-    if name == nil and opt[:short] == nil do
-      msg = "Option should have at least one of :name or :short: #{inspect opt}"
-      raise ArgumentError, message: msg
-    end
-    if opt[:argname] == nil and opt[:valtype] != :boolean and name != nil do
-      opt = Map.put(opt, :argname, name)
-    end
-    opt
-  end
-
-  defp validate_command(cmd=%{}) do
-    if !cmd[:name] do
-      msg = "Expected command to have a name: #{inspect cmd}"
-      raise ArgumentError, message: msg
-    end
-    cmd
-  end
-
   defp validate_spec(spec=%{}) do
     if spec[:name] == nil do
       msg = "Missing :name option for the command"
@@ -438,6 +412,43 @@ defmodule Commando do
     if spec[:usage] == nil and spec[:help] == nil, do:
       spec = Map.put(spec, :help, "")
     spec
+  end
+
+  defp validate_option(opt=%{}) do
+    name = opt[:name]
+    if name == nil and opt[:short] == nil do
+      msg = "Option should have at least one of :name or :short: #{inspect opt}"
+      raise ArgumentError, message: msg
+    end
+    if opt[:argname] == nil and opt[:valtype] != :boolean and name != nil do
+      opt = Map.put(opt, :argname, name)
+    end
+    opt
+  end
+
+  defp validate_argument(arg=%{}) do
+    if arg[:name] == nil do
+      arg = Map.put(arg, :name, "arg")
+    end
+    arg
+  end
+
+  defp validate_arguments(args) do
+    Enum.reduce(args, false, fn arg, seen_optional? ->
+      if !arg[:optional] && seen_optional? do
+        raise ArgumentError, message: "Required arguments cannot follow optional ones"
+      end
+      seen_optional? || arg[:optional]
+    end)
+    args
+  end
+
+  defp validate_command(cmd=%{}) do
+    if !cmd[:name] do
+      msg = "Expected command to have a name: #{inspect cmd}"
+      raise ArgumentError, message: msg
+    end
+    cmd
   end
 
   ###
