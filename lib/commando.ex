@@ -509,8 +509,6 @@ defmodule Commando do
   end
 
   defp postprocess_opts_and_args(spec, opts, args) do
-    IO.puts "Post-processing #{inspect opts} and #{inspect args}"
-
     # 1. Check if there are any extraneous switches
     option_set = Enum.map(spec[:options], fn opt ->
       {opt_name_to_atom(opt), true}
@@ -554,16 +552,31 @@ defmodule Commando do
         raise RuntimeError, message: "Unexpected argument: #{Enum.at(args, index)}"
 
       {:missing, index} ->
-        name = Enum.at(spec[:arguments], index)[:name]
-        raise RuntimeError, message: "Missing required argument: <#{name}>"
+        cond do
+          arguments=spec[:arguments] ->
+            name = Enum.at(arguments, index)[:name]
+            raise RuntimeError, message: "Missing required argument: <#{name}>"
 
+          spec[:commands] ->
+            raise RuntimeError, message: "Missing command"
+        end
       nil -> nil
     end
+
     # 4. If it is a command, continue parsing the command
+    cmd = if commands=spec[:commands] do
+      [arg|rest_args] = args
+      unless cmd_spec=Enum.find(commands, fn %{name: name} -> name == arg end) do
+        raise RuntimeError, message: "Unrecognized command: #{arg}"
+      end
+      args = []
+      parse(cmd_spec, rest_args)
+    end
 
     %Commando.Cmd{
       options: opts,
       arguments: args,
+      subcmd: cmd,
     }
   end
 
@@ -593,9 +606,7 @@ defmodule Commando do
     end
   end
 
-  defp check_argument_count(%{arguments: arguments}, args)
-    when is_list(arguments)
-  do
+  defp check_argument_count(%{arguments: arguments}, args) do
     {required_cnt, optional_cnt} = Enum.reduce(arguments, {0, 0}, fn
       %{optional: true}, {req_cnt, opt_cnt} -> {req_cnt, opt_cnt+1}
       _, {req_cnt, opt_cnt} -> {req_cnt + 1, opt_cnt}
@@ -609,6 +620,14 @@ defmodule Commando do
         {:missing, given_cnt}
 
       true -> nil
+    end
+  end
+
+  defp check_argument_count(%{commands: _}, args) do
+    required_cnt = 1
+    given_cnt = length(args)
+    if given_cnt < required_cnt do
+      {:missing, given_cnt}
     end
   end
 

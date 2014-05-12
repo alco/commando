@@ -208,33 +208,57 @@ defmodule CommandoTest.ParseTest do
     }
   end
 
-  #test "subcommands" do
-    #spec = [
-      #prefix: "pre",
-      #name: "tool",
-      #options: [[name: "log", kind: :boolean], [short: "v"]],
-      #commands: [
-        #[name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
-        #[name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
-      #],
-    #]
-    #spec_all = [list_options: :all] ++ spec
+  test "subcommands" do
+    spec = [
+      name: "tool",
+      options: [[name: "log", valtype: :boolean], [short: "v"]],
+      commands: [
+        [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
+        [name: "cmdb", options: [[short: "v"], [short: "p"]], arguments: [[]]],
+      ],
+    ]
 
-    #assert usage(spec) == "pre tool [options] <command> [...]"
-    #assert usage(spec_all) == "pre tool [--log] [-v] <command> [...]"
-    #assert usage(spec_all) == "pre tool [--log] [-v] <command> [...]"
+    assert_raise RuntimeError, "Missing command", fn ->
+      parse(spec, [])
+    end
+    assert_raise RuntimeError, "Unrecognized command: hello", fn ->
+      parse(spec, ["--log", "-v", ".", "hello"]) |> IO.inspect
+    end
+    assert_raise RuntimeError, "Missing required option: --opt-b", fn ->
+      parse(spec, ["--log", "-v", ".", "cmda"])
+    end
 
-    #assert usage(spec, "cmda") == "pre tool cmda [options]"
-    #assert usage(spec_all, "cmda") == "pre tool cmda [--opt-a=<opt_a>] --opt-b=<opt_b>"
+    assert parse(spec, ["--log", "-v", ".", "cmda", "--opt-b=0"]) == %Cmd{
+      options: [log: true, v: "."], arguments: [], subcmd: %Cmd{
+        options: [opt_b: "0"], arguments: [], subcmd: nil
+      }
+    }
 
-    #assert usage(spec, "cmdb") == "pre tool cmdb [options] <arg>"
-    #assert usage(spec_all, "cmdb") == "pre tool cmdb [-o] [-p] <arg>"
-  #end
+    assert_raise RuntimeError, "Unrecognized option: --opt-b", fn ->
+      parse(spec, ["cmdb", "--opt-b=0"])
+    end
+
+    assert_raise RuntimeError, "Missing required argument: <arg>", fn ->
+      parse(spec, ["cmdb"])
+    end
+
+    assert parse(spec, ["cmdb", "hello"]) == %Cmd{
+      options: [], arguments: [], subcmd: %Cmd{
+        options: [], arguments: ["hello"], subcmd: nil
+      }
+    }
+
+    assert parse(spec, ["-v", "0", "cmdb", "-v", "1", "hello", "-p", "2"]) == %Cmd{
+      options: [v: "0"], arguments: [], subcmd: %Cmd{
+        options: [v: "1", p: "2"], arguments: ["hello"], subcmd: nil
+      }
+    }
+  end
 
   #test "autohelp subcommand" do
     #spec = [
       #name: "tool",
-      #options: [[name: "log", kind: :boolean], [short: "v"]],
+      #options: [[name: "log", valtype: :boolean], [short: "v"]],
       #commands: [
         #:help,
         #[name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
