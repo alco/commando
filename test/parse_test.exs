@@ -229,7 +229,7 @@ defmodule CommandoTest.ParseTest do
     end
 
     assert parse(spec, ["--log", "-v", ".", "cmda", "--opt-b=0"]) == %Cmd{
-      options: [log: true, v: "."], arguments: [], subcmd: %Cmd{
+      options: [log: true, v: "."], arguments: nil, subcmd: %Cmd{
         options: [opt_b: "0"], arguments: [], subcmd: nil
       }
     }
@@ -243,13 +243,13 @@ defmodule CommandoTest.ParseTest do
     end
 
     assert parse(spec, ["cmdb", "hello"]) == %Cmd{
-      options: [], arguments: [], subcmd: %Cmd{
+      options: [], arguments: nil, subcmd: %Cmd{
         options: [], arguments: ["hello"], subcmd: nil
       }
     }
 
     assert parse(spec, ["-v", "0", "cmdb", "-v", "1", "hello", "-p", "2"]) == %Cmd{
-      options: [v: "0"], arguments: [], subcmd: %Cmd{
+      options: [v: "0"], arguments: nil, subcmd: %Cmd{
         options: [v: "1", p: "2"], arguments: ["hello"], subcmd: nil
       }
     }

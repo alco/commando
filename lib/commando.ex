@@ -1,7 +1,7 @@
 defmodule Commando.Cmd do
   defstruct [
     options: [],
-    arguments: [],
+    arguments: nil,
     subcmd: nil,
   ]
 end
@@ -569,7 +569,7 @@ defmodule Commando do
       unless cmd_spec=Enum.find(commands, fn %{name: name} -> name == arg end) do
         raise RuntimeError, message: "Unrecognized command: #{arg}"
       end
-      args = []
+      args = nil
       parse(cmd_spec, rest_args)
     end
 
