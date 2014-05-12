@@ -10,19 +10,17 @@ defmodule CommandoTest.ParseTest do
   end
 
   test "just arguments" do
-    spec_base = [name: "tool"]
-
-    spec = spec_base ++ [arguments: []]
+    spec = [name: "tool", arguments: []]
     assert parse(spec, []) == %Cmd{
       options: [], arguments: [], subcmd: nil
     }
 
-    spec = spec_base ++ [arguments: []]
+    spec = [name: "tool", arguments: []]
     assert_raise RuntimeError, "Unexpected argument: hello", fn ->
       parse(spec, ["hello"])
     end
 
-    spec = spec_base ++ [arguments: [[name: "path", optional: true]]]
+    spec = [name: "tool", arguments: [[name: "path", optional: true]]]
     assert parse(spec, []) == %Cmd{
       options: [], arguments: [], subcmd: nil
     }
@@ -30,7 +28,7 @@ defmodule CommandoTest.ParseTest do
       options: [], arguments: ["hi"], subcmd: nil
     }
 
-    spec = spec_base ++ [arguments: [[name: "path"]]]
+    spec = [name: "tool", arguments: [[name: "path"]]]
     assert_raise RuntimeError, "Missing required argument: <path>", fn ->
       parse(spec, [])
     end
@@ -41,7 +39,7 @@ defmodule CommandoTest.ParseTest do
       parse(spec, ["hello", "world"])
     end
 
-    spec = spec_base ++ [arguments: [[name: "path"], [name: "port", optional: true]]]
+    spec = [name: "tool", arguments: [[name: "path"], [name: "port", optional: true]]]
     assert_raise RuntimeError, "Missing required argument: <path>", fn ->
       parse(spec, [])
     end
@@ -56,55 +54,87 @@ defmodule CommandoTest.ParseTest do
     end
   end
 
-  #test "just options" do
-    #assert usage([
-      #name: "tool", options: [[name: "hi"]],
-    #]) == "tool [options]"
+  test "just options" do
+    spec = [name: "tool", options: [[name: "hi"]]]
+    assert parse(spec, []) == %Cmd{
+      options: [], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--hi=hello"]) == %Cmd{
+      options: [hi: "hello"], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--hi", "hello"]) == %Cmd{
+      options: [hi: "hello"], arguments: [], subcmd: nil
+    }
+    assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
+      parse(spec, ["--hi"])
+    end
+    assert_raise RuntimeError, "Unrecognized option: --bye", fn ->
+      parse(spec, ["--bye"])
+    end
+    assert_raise RuntimeError, "Unrecognized option: --bye", fn ->
+      parse(spec, ["--bye", "hello"])
+    end
 
-    #assert usage([
-      #name: "tool", list_options: :short, options: [[name: "hi"]],
-    #]) == "tool"
+    spec = [name: "tool", options: [[name: "hi", required: true]]]
+    assert_raise RuntimeError, "Missing required option: --hi", fn ->
+      parse(spec, [])
+    end
+    assert_raise RuntimeError, "Missing required option: --hi", fn ->
+      parse(spec, ["hello"])
+    end
+    assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
+      parse(spec, ["--hi"])
+    end
+    assert parse(spec, ["--hi=hello"]) == %Cmd{
+      options: [hi: "hello"], arguments: [], subcmd: nil
+    }
 
-    #assert usage([
-      #name: "tool", list_options: :long, options: [[short: "h"]],
-    #]) == "tool"
+    spec = [name: "tool", options: [[name: "hi", valtype: :integer]]]
+    assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
+      parse(spec, ["--hi"])
+    end
+    assert_raise RuntimeError, "Bad option value for --hi: hello", fn ->
+      parse(spec, ["--hi=hello"])
+    end
+    assert parse(spec, ["--hi", "13"]) == %Cmd{
+      options: [hi: 13], arguments: [], subcmd: nil
+    }
 
-    #assert usage([
-      #name: "tool", list_options: :short, options: [[name: "hi"], [short: "h"]],
-    #]) == "tool [-h]"
+    spec = [name: "tool", options: [[name: "hi", valtype: :boolean]]]
+    assert_raise RuntimeError, "Bad option value for --hi: hello", fn ->
+      parse(spec, ["--hi=hello"])
+    end
+    assert parse(spec, ["--hi"]) == %Cmd{
+      options: [hi: true], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--no-hi"]) == %Cmd{
+      options: [hi: false], arguments: [], subcmd: nil
+    }
 
-    #assert usage([
-      #name: "tool", list_options: :long, options: [[name: "hi"], [short: "h"]],
-    #]) == "tool [--hi=<hi>]"
-
-    #assert usage([
-      #name: "tool", list_options: :all, options: [[name: "hi"], [short: "h"]],
-    #]) == "tool [--hi=<hi>] [-h]"
-
-    #assert usage([
-      #name: "tool", list_options: :all, options: [[name: "hi", short: "h"]],
-    #]) == "tool [-h <hi>|--hi=<hi>]"
-
-    #assert usage([
+    #spec = [
       #name: "tool", list_options: :all,
       #options: [[name: "hi", short: "h", kind: :boolean]],
-    #]) == "tool [-h|--hi]"
+    #]
+    #assert parse(spec, ...) == "tool [-h|--hi]"
 
-    #assert usage([
+    #spec = [
       #name: "tool", list_options: :short,
       #options: [[name: "hi", short: "h", kind: :boolean, required: true]],
-    #]) == "tool -h"
+    #]
+    #assert parse(spec, ...) == "tool -h"
 
-    #assert usage([
+    #spec = [
       #name: "tool", list_options: :long,
       #options: [[name: "hi", short: "h", kind: :boolean, required: true]],
-    #]) == "tool --hi"
+    #]
+    #assert parse(spec, ...) == "tool --hi"
 
-    #assert usage([
+    #spec = [
       #name: "tool", list_options: :all,
       #options: [[name: "hi", short: "h", kind: :boolean, required: true]],
-    #]) == "tool {-h|--hi}"
-  #end
+    #]
+    #assert parse(spec, ...) == "tool {-h|--hi}"
+  end
 
   #test "options and arguments" do
     #assert usage([

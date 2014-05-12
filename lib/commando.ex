@@ -40,7 +40,7 @@ defmodule Commando do
     opts = [switches: switches, aliases: aliases]
     {opts, args} = case OptionParser.parse_head(args, opts) do
       {_, _, invalid} when invalid != [] ->
-        raise RuntimeError, message: "Bad options: #{inspect invalid}"
+        format_invalid_opts(spec, invalid)
 
       {opts, ["--"|args], []} -> {opts, args}
       {opts, args, []}        -> {opts, args}
@@ -478,18 +478,69 @@ defmodule Commando do
     end)
   end
 
+
+  defp format_invalid_opts(spec, invalid) do
+    option_set = Enum.reduce(spec[:options], %{}, fn opt, set ->
+      if short=opt[:short], do:
+        set = Map.put(set, binary_to_atom(short), true)
+      if name=opt[:name], do:
+        set = Map.put(set, binary_to_atom(name), true)
+    end)
+    Enum.each(invalid, fn {name, val} ->
+      formatted_name = opt_name_to_bin(name)
+      cond do
+        !option_set[name] ->
+          raise RuntimeError, message: "Unrecognized option: #{formatted_name}"
+
+        spec[:valtype] != :boolean and val in [false, true] ->
+          raise RuntimeError, message: "Missing argument for option: #{formatted_name}"
+
+        true ->
+          raise RuntimeError, message: "Bad option value for #{formatted_name}: #{val}"
+      end
+    end)
+  end
+
   defp postprocess_opts_and_args(spec, opts, args) do
     IO.puts "Post-processing #{inspect opts} and #{inspect args}"
 
     # 1. Check if there are any extraneous switches
-    option_set = Enum.map(spec[:options], &opt_name_to_atom/1) |> Enum.into(%{})
+    option_set = Enum.map(spec[:options], fn opt ->
+      {opt_name_to_atom(opt), true}
+    end) |> Enum.into(%{})
     Enum.each(opts, fn {name, _} ->
       if !option_set[name] do
-        raise RuntimeError, message: "Unrecognized option: #{inspect name}"
+        raise RuntimeError, message: "Unrecognized option: #{opt_name_to_bin(name)}"
       end
     end)
 
     # 2. Check all options for consistency with the spec
+    Enum.reduce(spec[:options], opts, fn opt_spec, opts ->
+      opt_name = opt_name_to_atom(opt_spec)
+      formatted_name = format_option_no_arg(opt_spec)
+      case Keyword.get_values(opts, opt_name) do
+        [] ->
+          if opt_spec[:required] do
+            raise RuntimeError, message: "Missing required option: #{formatted_name}"
+          end
+
+        [_] -> nil
+
+        _ ->
+          case opt_spec[:multival] do
+            :error ->
+              msg = "More than one value for a single-value option #{formatted_name}"
+              raise RuntimeError, message: msg
+
+            :accumulate ->
+              # replace option with the list of values
+              nil
+
+            _ -> nil
+          end
+      end
+    end)
+
     # 3. Check arguments
     case check_argument_count(spec, args) do
       {:extra, index} ->
@@ -510,8 +561,30 @@ defmodule Commando do
   end
 
 
+  defp format_option_no_arg(opt) do
+    cond do
+      name=opt[:name] ->
+        "--#{name_to_opt(name)}"
+
+      short=opt[:short] ->
+        "-#{name_to_opt(name)}"
+
+      true -> ""
+    end
+  end
+
+
   defp opt_name_to_atom(opt),
     do: binary_to_atom(opt[:name] || opt[:short])
+
+  defp opt_name_to_bin(name) do
+    opt_name = name_to_opt(atom_to_binary(name))
+    if byte_size(opt_name) > 1 do
+      "--" <> opt_name
+    else
+      "-" <> opt_name
+    end
+  end
 
   defp check_argument_count(%{arguments: arguments}, args)
     when is_list(arguments)
