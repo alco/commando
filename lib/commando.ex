@@ -1,5 +1,6 @@
 defmodule Commando.Cmd do
   defstruct [
+    name: nil,
     options: [],
     arguments: nil,
     subcmd: nil,
@@ -9,7 +10,9 @@ end
 defmodule Commando do
   @spec_defaults %{
     width: 40,
+
     prefix: "",
+    exec_help: true,
     options: [],
   }
 
@@ -19,10 +22,27 @@ defmodule Commando do
     help: "",
   }
 
-  @cmd_arg_defaults %{
+  @arg_defaults %{
     optional: false,
     help: "",
   }
+
+  @cmd_defaults %{
+    options: [],
+    help: "",
+  }
+
+  @help_cmd_spec Map.merge(@cmd_defaults, %{
+    name: "help",
+    help: "Print description of the given command.",
+    arguments: [
+      Map.merge(@arg_defaults, %{
+        name: "command",
+        optional: true,
+        help: "The command to describe. When omitted, help for the tool itself is printed."
+      })
+    ],
+  })
 
 
   @doc """
@@ -257,6 +277,9 @@ defmodule Commando do
   defp process_definition([{:prefix, p}|rest], spec) when is_binary(p),
     do: process_definition(rest, %{spec | prefix: p})
 
+  defp process_definition([{:exec_help, e}|rest], spec) when e in [false, true],
+    do: process_definition(rest, %{spec | exec_help: e})
+
   defp process_definition([{:usage, u}|rest], spec) when is_binary(u),
     do: process_definition(rest, Map.put(spec, :usage, u))
 
@@ -327,21 +350,9 @@ defmodule Commando do
   end
 
 
-  @help_cmd_spec Map.merge(@cmd_arg_defaults, %{
-    name: "help",
-    help: "Print description of the given command.",
-    arguments: [
-      Map.merge(@cmd_arg_defaults, %{
-        name: "command",
-        optional: true,
-        help: "The command to describe. When omitted, help for the tool itself is printed."
-      })
-    ],
-  })
-
   defp compile_command(:help), do: @help_cmd_spec
 
-  defp compile_command(cmd), do: compile_command(cmd, @cmd_arg_defaults)
+  defp compile_command(cmd), do: compile_command(cmd, @cmd_defaults)
 
   defp compile_command([], cmd), do: cmd
 
@@ -362,7 +373,7 @@ defmodule Commando do
   end
 
 
-  defp compile_argument(arg), do: compile_argument(arg, @cmd_arg_defaults)
+  defp compile_argument(arg), do: compile_argument(arg, @arg_defaults)
 
   defp compile_argument([], arg), do: arg
 
@@ -574,6 +585,7 @@ defmodule Commando do
     end
 
     %Commando.Cmd{
+      name: spec[:name],
       options: opts,
       arguments: args,
       subcmd: cmd,
