@@ -42,14 +42,43 @@ defmodule Commando do
   end
 
   @doc """
+  Print usage for the spec or one of its subcommands.
+  """
+  def usage(spec, cmd \\ nil)
+
+  def usage(spec, nil) do
+    option_text = format_options(spec[:options], spec[:list_options])
+    arg_text = cond do
+      spec[:commands] -> "<command> [...]"
+      arguments=spec[:arguments] -> format_arguments(arguments)
+      true -> ""
+    end
+
+    [spec[:prefix], spec[:name], option_text, arg_text]
+    |> Enum.reject(&( &1 == "" ))
+    |> Enum.join(" ")
+  end
+
+  def usage(spec, cmd) when is_binary(cmd) do
+    unless cmd_spec = Enum.find(spec[:commands], &( &1[:name] == cmd )) do
+      raise ArgumentError, "Undefined command #{cmd}"
+    end
+    Map.merge(cmd_spec, %{
+      prefix: Enum.join([spec[:prefix], spec[:name]], " "),
+      list_options: spec[:list_options],
+    })
+    |> usage()
+  end
+
+  @doc """
   Print help for the spec or one of its subcommands.
   """
   def help(spec, cmd \\ nil)
 
-  def help(%{help: {:full, help}, options: options}=spec, nil) do
+  def help(%{help: {:full, help}}=spec, nil) do
     help
     |> String.replace("{{usage}}", usage(spec))
-    |> String.replace("{{options}}", format_option_list(options))
+    |> String.replace("{{options}}", format_option_list(spec[:options]))
     |> String.replace("{{commands}}", format_command_list(spec[:commands]))
     |> String.replace("{{arguments}}", format_argument_list(spec[:arguments]))
   end
@@ -94,36 +123,9 @@ defmodule Commando do
     |> help()
   end
 
-
-  def usage(spec, cmd \\ nil)
-
-  def usage(spec, nil) do
-    option_text = format_options(spec[:options], spec[:list_options])
-    arg_text = cond do
-      spec[:commands] -> "<command> [...]"
-      arguments=spec[:arguments] -> format_arguments(arguments)
-      true -> ""
-    end
-
-    [spec[:prefix], spec[:name], option_text, arg_text]
-    |> Enum.reject(&( &1 == "" ))
-    |> Enum.join(" ")
-  end
-
-  def usage(spec, cmd) when is_binary(cmd) do
-    unless cmd_spec = Enum.find(spec[:commands], &( &1[:name] == cmd )) do
-      raise ArgumentError, "Undefined command #{cmd}"
-    end
-    Map.merge(cmd_spec, %{
-      prefix: Enum.join([spec[:prefix], spec[:name]], " "),
-      list_options: spec[:list_options],
-    })
-    |> usage()
-  end
-
   ###
 
-  defp format_option_list([]), do: ""
+  defp format_option_list(null) when null in [nil, []], do: ""
 
   defp format_option_list(options),
     do: (Enum.map(options, &format_option_help/1) |> Enum.join("\n\n"))
@@ -253,7 +255,8 @@ defmodule Commando do
   defp process_definition([{:options, opt}|rest], spec) when is_list(opt),
     do: process_definition(rest, %{spec | options: process_options(opt)})
 
-  defp process_definition([{:list_options, kind}|rest], spec) when kind in [nil, :short, :long, :all],
+  defp process_definition([{:list_options, kind}|rest], spec)
+    when kind in [nil, :short, :long, :all],
     do: process_definition(rest, Map.put(spec, :list_options, kind))
 
   defp process_definition([{:arguments, arg}|rest], spec) when is_list(arg),
@@ -267,11 +270,14 @@ defmodule Commando do
   end
 
 
-  defp process_options(opt), do: Enum.map(opt, &(compile_option(&1) |> validate_option()))
+  defp process_options(opt),
+    do: Enum.map(opt, &(compile_option(&1) |> validate_option()))
 
-  defp process_commands(cmd), do: Enum.map(cmd, &(compile_command(&1) |> validate_command()))
+  defp process_commands(cmd),
+    do: Enum.map(cmd, &(compile_command(&1) |> validate_command()))
 
-  defp process_arguments(arg), do: Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
+  defp process_arguments(arg),
+    do: Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
 
 
   defp compile_option(opt), do: compile_option(opt, @opt_defaults)
@@ -305,7 +311,13 @@ defmodule Commando do
   @help_cmd_spec Map.merge(@cmd_arg_defaults, %{
     name: "help",
     help: "Print description of the given command.",
-    arguments: [Map.merge(@cmd_arg_defaults, %{name: "command", optional: true, help: "The command to describe. When omitted, help for the tool itself is printed."})],
+    arguments: [
+      Map.merge(@cmd_arg_defaults, %{
+        name: "command",
+        optional: true,
+        help: "The command to describe. When omitted, help for the tool itself is printed."
+      })
+    ],
   })
 
   defp compile_command(:help), do: @help_cmd_spec
@@ -382,7 +394,8 @@ defmodule Commando do
   defp validate_option(opt=%{}) do
     name = opt[:name]
     if name == nil and opt[:short] == nil do
-      raise ArgumentError, message: "Option should have at least one of :name or :short: #{inspect opt}"
+      msg = "Option should have at least one of :name or :short: #{inspect opt}"
+      raise ArgumentError, message: msg
     end
     if opt[:argname] == nil and opt[:kind] != :boolean and name != nil do
       opt = Map.put(opt, :argname, name)
@@ -392,20 +405,24 @@ defmodule Commando do
 
   defp validate_command(cmd=%{}) do
     if !cmd[:name] do
-      raise ArgumentError, message: "Expected command to have a name: #{inspect cmd}"
+      msg = "Expected command to have a name: #{inspect cmd}"
+      raise ArgumentError, message: msg
     end
     cmd
   end
 
   defp validate_spec(spec=%{}) do
     if spec[:name] == nil do
-      raise ArgumentError, message: "Missing :name option for the command"
+      msg = "Missing :name option for the command"
+      raise ArgumentError, message: msg
     end
     if spec[:usage] != nil and spec[:help] != nil do
-      raise ArgumentError, message: "Options :usage and :help are incompatible with each other"
+      msg = "Options :usage and :help are incompatible with each other"
+      raise ArgumentError, message: msg
     end
     if spec[:commands] != nil and spec[:arguments] != nil do
-      raise ArgumentError, message: "Options :commands and :arguments are incompatible with each other"
+      msg = "Options :commands and :arguments are incompatible with each other"
+      raise ArgumentError, message: msg
     end
     if spec[:usage] == nil and spec[:help] == nil do
       spec = Map.put(spec, :help, "")
