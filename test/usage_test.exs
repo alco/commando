@@ -35,15 +35,15 @@ defmodule CommandoTest.UsageTest do
     ]) == "tool [--hi=<hi>]"
 
     assert usage([
-      name: "tool", list_options: :mixed, options: [[name: "hi"], [short: "h"]],
+      name: "tool", list_options: :all, options: [[name: "hi"], [short: "h"]],
     ]) == "tool [--hi=<hi>] [-h]"
 
     assert usage([
-      name: "tool", list_options: :mixed, options: [[name: "hi", short: "h"]],
+      name: "tool", list_options: :all, options: [[name: "hi", short: "h"]],
     ]) == "tool [-h <hi>|--hi=<hi>]"
 
     assert usage([
-      name: "tool", list_options: :mixed,
+      name: "tool", list_options: :all,
       options: [[name: "hi", short: "h", kind: :boolean]],
     ]) == "tool [-h|--hi]"
 
@@ -58,7 +58,7 @@ defmodule CommandoTest.UsageTest do
     ]) == "tool --hi"
 
     assert usage([
-      name: "tool", list_options: :mixed,
+      name: "tool", list_options: :all,
       options: [[name: "hi", short: "h", kind: :boolean, required: true]],
     ]) == "tool {-h|--hi}"
   end
@@ -74,7 +74,7 @@ defmodule CommandoTest.UsageTest do
       name: "tool",
       arguments: [[name: "arg1"], [name: "arg2", optional: true]],
       options: [[name: "hi"], [short: "h", argname: "value"]],
-      list_options: :mixed,
+      list_options: :all,
     ]) == "tool [--hi=<hi>] [-h <value>] <arg1> [<arg2>]"
   end
 
@@ -91,9 +91,44 @@ defmodule CommandoTest.UsageTest do
     assert Commando.usage(cmd) |> String.strip == "prefix tool [--hi=<hi>]"
   end
 
+  test "subcommands" do
+    spec = [
+      name: "tool",
+      options: [[name: "log", kind: :boolean], [short: "v"]],
+      commands: [
+        [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
+        [name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
+      ],
+    ]
+    spec_all = [list_options: :all] ++ spec
 
-  defp usage(opts),
-    do: Commando.new(opts) |> Commando.usage |> String.strip
+    assert usage(spec) == "tool [options] <command> [...]"
+    assert usage(spec_all) == "tool [--log] [-v] <command> [...]"
+    assert usage(spec_all) == "tool [--log] [-v] <command> [...]"
+
+    assert usage(spec, "cmda") == "tool cmda [options]"
+    assert usage(spec_all, "cmda") == "tool cmda [--opt-a=<opt_a>] --opt-b=<opt_b>"
+
+    assert usage(spec, "cmdb") == "tool cmdb [options] <arg>"
+    assert usage(spec_all, "cmdb") == "tool cmdb [-o] [-p] <arg>"
+  end
+
+  test "autohelp subcommand" do
+    spec = [
+      name: "tool",
+      options: [[name: "log", kind: :boolean], [short: "v"]],
+      commands: [
+        :help,
+        [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
+        [name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
+      ],
+    ]
+
+    assert usage(spec, "help") == "tool help [<command>]"
+  end
+
+  defp usage(opts, cmd \\ nil),
+    do: Commando.new(opts) |> Commando.usage(cmd) |> String.strip
 
   defp usage_args(args),
     do: Commando.new([name: "tool", arguments: args]) |> Commando.usage |> String.strip

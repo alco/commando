@@ -16,6 +16,7 @@ defmodule Commando do
     help: "",
   }
 
+
   @doc """
   Create a new command specification.
   """
@@ -92,6 +93,25 @@ defmodule Commando do
     |> Enum.join(" ")
   end
 
+  def usage(spec, cmd) when is_binary(cmd) do
+    unless cmd_spec = Enum.find(spec[:commands], &( &1[:name] == cmd )) do
+      raise ArgumentError, "Undefined command #{cmd}"
+    end
+    cmd_usage(spec, cmd_spec)
+  end
+
+
+  defp cmd_usage(spec, cmd) do
+    option_text = format_options(cmd[:options], spec[:list_options])
+    arg_text = if arguments=cmd[:arguments] do
+      format_arguments(arguments)
+    end
+
+    [spec[:prefix], spec[:name], cmd[:name], option_text, arg_text]
+    |> Enum.reject(&( &1 == "" ))
+    |> Enum.join(" ")
+  end
+
   ###
 
   defp format_option_list([]), do: ""
@@ -112,7 +132,7 @@ defmodule Commando do
     do: (Enum.map(arguments, fn x -> inspect(x) end) |> Enum.join("\n"))
 
 
-  defp format_options([], _), do: ""
+  defp format_options(null, _) when null in [nil, []], do: ""
 
   defp format_options(_, nil), do: "[options]"
 
@@ -122,7 +142,7 @@ defmodule Commando do
 
   defp format_option(opt, :short) do
     if name=opt[:short] do
-      name = "-#{name}"
+      name = "-#{name_to_opt(name)}"
       if argname=opt[:argname], do: name = "#{name} <#{argname}>"
       name
     end
@@ -130,22 +150,26 @@ defmodule Commando do
 
   defp format_option(opt, :long) do
     if name = opt[:name] do
-      name = "--#{name}"
+      name = "--#{name_to_opt(name)}"
       if argname=opt[:argname], do: name = "#{name}=<#{argname}>"
       name
     end
   end
 
-  defp format_option(opt, :mixed) do
+  defp format_option(opt, :all) do
     [format_option(opt, :short), format_option(opt, :long)]
     |> Enum.reject(&( &1 in [nil, ""] ))
     |> Enum.join("|")
   end
 
 
+  defp name_to_opt(name), do: String.replace(name, "_", "-")
+  defp opt_to_name(opt), do: String.replace(opt, "-", "_")
+
+
   defp wrap_option(null, _, _) when null in [nil, ""], do: ""
 
-  defp wrap_option(formatted, %{short: _, name: _, required: true}, :mixed),
+  defp wrap_option(formatted, %{short: _, name: _, required: true}, :all),
     do: "{#{formatted}}"
 
   defp wrap_option(formatted, %{required: false}, _),
@@ -189,7 +213,7 @@ defmodule Commando do
   defp process_definition([{:options, opt}|rest], spec) when is_list(opt),
     do: process_definition(rest, %{spec | options: process_options(opt)})
 
-  defp process_definition([{:list_options, kind}|rest], spec) when kind in [nil, :short, :long, :mixed],
+  defp process_definition([{:list_options, kind}|rest], spec) when kind in [nil, :short, :long, :all],
     do: process_definition(rest, Map.put(spec, :list_options, kind))
 
   defp process_definition([{:arguments, arg}|rest], spec) when is_list(arg),
@@ -237,6 +261,14 @@ defmodule Commando do
     raise ArgumentError, message: "Unrecognized option parameter #{inspect opt}"
   end
 
+
+  @help_cmd_spec Map.merge(@cmd_arg_defaults, %{
+    name: "help",
+    help: "Print description of the given command.",
+    arguments: [Map.merge(@cmd_arg_defaults, %{name: "command", optional: true})],
+  })
+
+  defp compile_command(:help), do: @help_cmd_spec
 
   defp compile_command(cmd), do: compile_command(cmd, @cmd_arg_defaults)
 
