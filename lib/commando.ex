@@ -36,9 +36,16 @@ defmodule Commando do
   Parse command-line arguments according to the spec.
   """
   def parse(spec, args \\ System.argv) do
-    {switches, aliases} = spec_to_parser_opts(spec)
-    opts = [switches: switches, aliases: aliases]
-    {opts, args} = case OptionParser.parse_head(args, opts) do
+    opts = spec_to_parser_opts(spec)
+    commands = spec[:commands]
+
+    parsed = if is_list(commands) and commands != [] do
+      OptionParser.parse_head(args, opts)
+    else
+      OptionParser.parse(args, opts)
+    end
+
+    {opts, args} = case parsed do
       {_, _, invalid} when invalid != [] ->
         format_invalid_opts(spec, invalid)
 
@@ -192,7 +199,7 @@ defmodule Commando do
 
 
   defp name_to_opt(name), do: String.replace(name, "_", "-")
-  defp opt_to_name(opt), do: String.replace(opt, "-", "_")
+  #defp opt_to_name(opt), do: String.replace(opt, "-", "_")
 
 
   defp wrap_option(null, _, _) when null in [nil, ""], do: ""
@@ -206,10 +213,10 @@ defmodule Commando do
   defp wrap_option(formatted, _, _), do: formatted
 
 
-  defp format_command_brief(cmd=%{name: name, help: ""}),
+  defp format_command_brief(%{name: name, help: ""}),
     do: "  #{:io_lib.format('~-10s', [name])}(no documentation)"
 
-  defp format_command_brief(cmd=%{name: name, help: help}),
+  defp format_command_brief(%{name: name, help: help}),
     do: "  #{:io_lib.format('~-10s', [name])}#{first_sentence(help)}"
 
 
@@ -453,10 +460,8 @@ defmodule Commando do
 
   ###
 
-  defp spec_to_parser_opts(spec=%{options: opt}) do
-    Enum.reduce(opt, {[], []}, fn opt, {switches, aliases} ->
-      IO.puts "transformng opt #{inspect opt}"
-
+  defp spec_to_parser_opts(%{options: options}) do
+    {s, a} = Enum.reduce(options, {[], []}, fn opt, {switches, aliases} ->
       opt_name = opt_name_to_atom(opt)
       kind = []
 
@@ -476,6 +481,7 @@ defmodule Commando do
 
       {switches, aliases}
     end)
+    [switches: s, aliases: a]
   end
 
 
@@ -485,6 +491,7 @@ defmodule Commando do
         set = Map.put(set, binary_to_atom(short), true)
       if name=opt[:name], do:
         set = Map.put(set, binary_to_atom(name), true)
+      set
     end)
     Enum.each(invalid, fn {name, val} ->
       formatted_name = opt_name_to_bin(name)

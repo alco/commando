@@ -189,8 +189,8 @@ defmodule CommandoTest.ParseTest do
       [name: "path"],
       [name: "port", optional: true]
     ], options: [
-      [name: "earth", valtype: :float, multival: :accumulate],
-      [name: "mars", valtype: :string, multival: :error],
+      [name: "earth", valtype: :float],
+      [name: "mars", valtype: :string],
       [short: "o", valtype: :string, required: true],
     ]]
 
@@ -204,7 +204,7 @@ defmodule CommandoTest.ParseTest do
       options: [o: "home"], arguments: ["path", "port"], subcmd: nil
     }
     assert parse(spec, ["-o", ".", "home", "--earth=13"]) == %Cmd{
-      options: [o: "."], arguments: ["home", "--earth=13"], subcmd: nil
+      options: [o: ".", earth: 13.0], arguments: ["home"], subcmd: nil
     }
   end
 
