@@ -184,33 +184,29 @@ defmodule CommandoTest.ParseTest do
   end
 
 
-  #test "options and arguments" do
-    #assert usage([
-      #name: "tool",
-      #arguments: [[]],
-      #options: [[name: "hi"]],
-    #]) == "tool [options] <arg>"
+  test "options and arguments" do
+    spec = [name: "tool", arguments: [
+      [name: "path"],
+      [name: "port", optional: true]
+    ], options: [
+      [name: "earth", valtype: :float, multival: :accumulate],
+      [name: "mars", valtype: :string, multival: :error],
+      [short: "o", valtype: :string, required: true],
+    ]]
 
-    #assert usage([
-      #name: "tool",
-      #arguments: [[name: "arg1"], [name: "arg2", optional: true]],
-      #options: [[name: "hi"], [short: "h", argname: "value"]],
-      #list_options: :all,
-    #]) == "tool [--hi=<hi>] [-h <value>] <arg1> [<arg2>]"
-  #end
-
-  #test "command with prefix" do
-    #prefix = [prefix: "prefix", name: "tool"]
-
-    #cmd = Commando.new prefix
-    #assert Commando.usage(cmd) |> String.strip == "prefix tool"
-
-    #cmd = Commando.new prefix ++ [arguments: [[name: "hi"]]]
-    #assert Commando.usage(cmd) |> String.strip == "prefix tool <hi>"
-
-    #cmd = Commando.new prefix ++ [options: [[name: "hi"]], list_options: :long]
-    #assert Commando.usage(cmd) |> String.strip == "prefix tool [--hi=<hi>]"
-  #end
+    assert_raise RuntimeError, "Missing required argument: <path>", fn ->
+      parse(spec, ["-o", "1"])
+    end
+    assert_raise RuntimeError, "Missing required option: -o", fn ->
+      parse(spec, ["foo"])
+    end
+    assert parse(spec, ["-o", "home", "path", "port"]) == %Cmd{
+      options: [o: "home"], arguments: ["path", "port"], subcmd: nil
+    }
+    assert parse(spec, ["-o", ".", "home", "--earth=13"]) == %Cmd{
+      options: [o: "."], arguments: ["home", "--earth=13"], subcmd: nil
+    }
+  end
 
   #test "subcommands" do
     #spec = [

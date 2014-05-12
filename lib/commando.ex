@@ -159,15 +159,15 @@ defmodule Commando do
 
 
   defp format_option(opt, :short) do
-    if name=opt[:short] do
-      name = "-#{name_to_opt(name)}"
+    if short=opt[:short] do
+      name = "-#{name_to_opt(short)}"
       if argname=opt[:argname], do: name = "#{name} <#{argname}>"
       name
     end
   end
 
   defp format_option(opt, :long) do
-    if name = opt[:name] do
+    if name=opt[:name] do
       name = "--#{name_to_opt(name)}"
       if argname=opt[:argname], do: name = "#{name}=<#{argname}>"
       name
@@ -567,7 +567,7 @@ defmodule Commando do
         "--#{name_to_opt(name)}"
 
       short=opt[:short] ->
-        "-#{name_to_opt(name)}"
+        "-#{name_to_opt(short)}"
 
       true -> ""
     end
