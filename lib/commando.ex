@@ -53,8 +53,9 @@ defmodule Commando do
     |> String.replace("{{arguments}}", format_argument_list(spec[:arguments]))
   end
 
-  def help(%{help: help, options: options}=spec, nil) do
-    option_text = if options != [] do
+  def help(%{help: help}=spec, nil) do
+    options = spec[:options]
+    option_text = if not (options in [nil, []]) do
       "Options:\n" <> format_option_list(options)
     end
 
@@ -76,9 +77,20 @@ defmodule Commando do
 
     """
     Usage:
-      #{usage(spec, nil)}
+      #{usage(spec)}
     #{lines}
     """
+  end
+
+  def help(%{}=spec, cmd) do
+    unless cmd_spec = Enum.find(spec[:commands], &( &1[:name] == cmd )) do
+      raise ArgumentError, "Undefined command #{cmd}"
+    end
+    Map.merge(cmd_spec, %{
+      prefix: Enum.join([spec[:prefix], spec[:name]], " "),
+      list_options: spec[:list_options],
+    })
+    |> help()
   end
 
 
@@ -101,19 +113,11 @@ defmodule Commando do
     unless cmd_spec = Enum.find(spec[:commands], &( &1[:name] == cmd )) do
       raise ArgumentError, "Undefined command #{cmd}"
     end
-    cmd_usage(spec, cmd_spec)
-  end
-
-
-  defp cmd_usage(spec, cmd) do
-    option_text = format_options(cmd[:options], spec[:list_options])
-    arg_text = if arguments=cmd[:arguments] do
-      format_arguments(arguments)
-    end
-
-    [spec[:prefix], spec[:name], cmd[:name], option_text, arg_text]
-    |> Enum.reject(&( &1 == "" ))
-    |> Enum.join(" ")
+    Map.merge(cmd_spec, %{
+      prefix: Enum.join([spec[:prefix], spec[:name]], " "),
+      list_options: spec[:list_options],
+    })
+    |> usage()
   end
 
   ###
@@ -300,7 +304,7 @@ defmodule Commando do
   @help_cmd_spec Map.merge(@cmd_arg_defaults, %{
     name: "help",
     help: "Print description of the given command.",
-    arguments: [Map.merge(@cmd_arg_defaults, %{name: "command", optional: true})],
+    arguments: [Map.merge(@cmd_arg_defaults, %{name: "command", optional: true, help: "The command to describe. When omitted, help for the tool itself is printed."})],
   })
 
   defp compile_command(:help), do: @help_cmd_spec

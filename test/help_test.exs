@@ -160,11 +160,36 @@ defmodule CommandoTest.HelpTest do
         cmdb      Command B
       """
 
-    #assert help(spec, "cmda") == "tool cmda [options]"
-    #assert help(spec_all, "cmda") == "tool cmda [--opt-a=<opt_a>] --opt-b=<opt_b>"
+    assert help(spec, "cmda") == """
+      Usage:
+        tool cmda [options]
 
-    #assert help(spec, "cmdb") == "tool cmdb [options] <arg>"
-    #assert help(spec_all, "cmdb") == "tool cmdb [-o] [-p] <arg>"
+      This is command A. It is very practical
+
+      Options:
+        --opt-a=<opt_a>
+          Documented option
+
+        --opt-b=<opt_b>
+          (no documentation)
+      """
+
+    assert help(spec_all, "cmdb") == """
+      Usage:
+        tool cmdb [-o] [-p] <arg>
+
+      Command B. Not so practical
+
+      Options:
+        -o
+          (no documentation)
+
+        -p
+          (no documentation)
+
+      Arguments:
+        arg       (no documentation)
+      """
   end
 
   test "custom help message" do
@@ -218,19 +243,37 @@ defmodule CommandoTest.HelpTest do
       """
   end
 
-  #test "autohelp subcommand" do
-    #spec = [
-      #name: "tool",
-      #options: [[name: "log", kind: :boolean], [short: "v"]],
-      #commands: [
-        #:help,
-        #[name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
-        #[name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
-      #],
-    #]
+  test "autohelp subcommand" do
+    spec = [
+      prefix: "pre",
+      name: "tool",
+      commands: [
+        :help,
+        [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
+        [name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
+      ],
+    ]
 
-    #assert help(spec, "help") == "tool help [<command>]"
-  #end
+    assert help(spec) == """
+      Usage:
+        pre tool <command> [...]
+
+      Commands:
+        help      Print description of the given command
+        cmda      (no documentation)
+        cmdb      (no documentation)
+      """
+
+    assert help(spec, "help") == """
+      Usage:
+        pre tool help [<command>]
+
+      Print description of the given command.
+
+      Arguments:
+        command   The command to describe. When omitted, help for the tool itself is printed.
+      """
+  end
 
   defp help(opts, cmd \\ nil),
     do: Commando.new(opts) |> Commando.help(cmd)

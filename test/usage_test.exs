@@ -93,6 +93,7 @@ defmodule CommandoTest.UsageTest do
 
   test "subcommands" do
     spec = [
+      prefix: "pre",
       name: "tool",
       options: [[name: "log", kind: :boolean], [short: "v"]],
       commands: [
@@ -102,15 +103,15 @@ defmodule CommandoTest.UsageTest do
     ]
     spec_all = [list_options: :all] ++ spec
 
-    assert usage(spec) == "tool [options] <command> [...]"
-    assert usage(spec_all) == "tool [--log] [-v] <command> [...]"
-    assert usage(spec_all) == "tool [--log] [-v] <command> [...]"
+    assert usage(spec) == "pre tool [options] <command> [...]"
+    assert usage(spec_all) == "pre tool [--log] [-v] <command> [...]"
+    assert usage(spec_all) == "pre tool [--log] [-v] <command> [...]"
 
-    assert usage(spec, "cmda") == "tool cmda [options]"
-    assert usage(spec_all, "cmda") == "tool cmda [--opt-a=<opt_a>] --opt-b=<opt_b>"
+    assert usage(spec, "cmda") == "pre tool cmda [options]"
+    assert usage(spec_all, "cmda") == "pre tool cmda [--opt-a=<opt_a>] --opt-b=<opt_b>"
 
-    assert usage(spec, "cmdb") == "tool cmdb [options] <arg>"
-    assert usage(spec_all, "cmdb") == "tool cmdb [-o] [-p] <arg>"
+    assert usage(spec, "cmdb") == "pre tool cmdb [options] <arg>"
+    assert usage(spec_all, "cmdb") == "pre tool cmdb [-o] [-p] <arg>"
   end
 
   test "autohelp subcommand" do
