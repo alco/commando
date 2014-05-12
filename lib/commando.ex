@@ -48,6 +48,7 @@ defmodule Commando do
 
   def help(%{help: {:full, help}, options: options}=spec, nil) do
     help
+    |> String.replace("{{usage}}", usage(spec))
     |> String.replace("{{options}}", format_option_list(options))
     |> String.replace("{{commands}}", format_command_list(spec[:commands]))
     |> String.replace("{{arguments}}", format_argument_list(spec[:arguments]))

@@ -51,15 +51,15 @@ spec = Commando.new [
 
   #help: {:full, """
     #Usage:
-      #mix muweb [options] <command> [<args>]
+      #{{usage}}
 
     #Single task encapsulating a set of useful commands that utilise the μWeb server.
 
     #Options (available for all commands except "help"):
-      #{{options}}
+    #{{options}}
 
     #Commands:
-      #{{commands}}
+    #{{commands}}
     #"""},
 
   list_options: :short,

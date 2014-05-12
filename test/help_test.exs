@@ -196,7 +196,7 @@ defmodule CommandoTest.HelpTest do
     spec = [
       name: "tool",
       help: {:full, """
-        Usage: ...
+        Usage: {{usage}}
 
         A very useful tool.
 
@@ -223,7 +223,7 @@ defmodule CommandoTest.HelpTest do
     ]
 
     assert help(spec) == """
-      Usage: ...
+      Usage: tool [options] <command> [...]
 
       A very useful tool.
 
