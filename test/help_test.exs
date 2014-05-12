@@ -88,55 +88,135 @@ defmodule CommandoTest.HelpTest do
       """
   end
 
-  #test "options and arguments" do
-    #assert help([
-      #name: "tool",
-      #arguments: [[]],
-      #options: [[name: "hi"]],
-    #]) == "tool [options] <arg>"
+  test "options and arguments" do
+    assert help([
+      name: "tool",
+      arguments: [[help: "An argument. Second sentence."]],
+      options: [[name: "hi", help: "This is an option."]],
+    ]) == """
+      Usage:
+        tool [options] <arg>
 
-    #assert help([
-      #name: "tool",
-      #arguments: [[name: "arg1"], [name: "arg2", optional: true]],
-      #options: [[name: "hi"], [short: "h", argname: "value"]],
-      #list_options: :all,
-    #]) == "tool [--hi=<hi>] [-h <value>] <arg1> [<arg2>]"
-  #end
+      Options:
+        --hi=<hi>
+          This is an option.
 
-  #test "command with prefix" do
-    #prefix = [prefix: "prefix", name: "tool"]
+      Arguments:
+        arg       An argument. Second sentence.
+      """
 
-    #cmd = Commando.new prefix
-    #assert Commando.help(cmd) |> String.strip == "prefix tool"
+    assert help([
+      name: "tool",
+      arguments: [[name: "arg1", help: "argument #1"], [name: "arg2", optional: true]],
+      options: [[short: "o", required: true, help: "Required option"]],
+      list_options: :all,
+    ]) == """
+      Usage:
+        tool -o <arg1> [<arg2>]
 
-    #cmd = Commando.new prefix ++ [arguments: [[name: "hi"]]]
-    #assert Commando.help(cmd) |> String.strip == "prefix tool <hi>"
+      Options:
+        -o
+          Required option
 
-    #cmd = Commando.new prefix ++ [options: [[name: "hi"]], list_options: :long]
-    #assert Commando.help(cmd) |> String.strip == "prefix tool [--hi=<hi>]"
-  #end
+      Arguments:
+        arg1      argument #1
+        arg2      (no documentation)
+      """
+  end
 
-  #test "subcommands" do
-    #spec = [
-      #name: "tool",
-      #options: [[name: "log", kind: :boolean], [short: "v"]],
-      #commands: [
-        #[name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
-        #[name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
-      #],
-    #]
-    #spec_all = [list_options: :all] ++ spec
+  test "proper indentation" do
+  end
 
-    #assert help(spec) == "tool [options] <command> [...]"
-    #assert help(spec_all) == "tool [--log] [-v] <command> [...]"
-    #assert help(spec_all) == "tool [--log] [-v] <command> [...]"
+  test "subcommands" do
+    spec = [
+      name: "tool",
+      options: [[name: "log", kind: :boolean], [short: "v"]],
+      commands: [
+        [name: "cmda",
+         help: "This is command A. It is very practical",
+         options: [[name: "opt_a", help: "Documented option"],
+                   [name: "opt_b", required: true]]],
+
+        [name: "cmdb",
+         help: "Command B. Not so practical",
+         options: [[short: "o"], [short: "p"]], arguments: [[]]],
+      ],
+    ]
+    spec_all = [list_options: :all] ++ spec
+
+    assert help(spec) == """
+      Usage:
+        tool [options] <command> [...]
+
+      Options:
+        --log
+          (no documentation)
+
+        -v
+          (no documentation)
+
+      Commands:
+        cmda      This is command A
+        cmdb      Command B
+      """
 
     #assert help(spec, "cmda") == "tool cmda [options]"
     #assert help(spec_all, "cmda") == "tool cmda [--opt-a=<opt_a>] --opt-b=<opt_b>"
 
     #assert help(spec, "cmdb") == "tool cmdb [options] <arg>"
     #assert help(spec_all, "cmdb") == "tool cmdb [-o] [-p] <arg>"
-  #end
+  end
+
+  test "custom help message" do
+    spec = [
+      name: "tool",
+      help: {:full, """
+        Usage: ...
+
+        A very useful tool.
+
+        Options (but not exactly):
+        {{options}}
+
+        Arguments:
+        {{arguments}}
+
+        Commands:
+        {{commands}}
+        """},
+      options: [[name: "log", kind: :boolean], [short: "v"]],
+      commands: [
+        [name: "cmda",
+         help: "This is command A. It is very practical",
+         options: [[name: "opt_a", help: "Documented option"],
+                   [name: "opt_b", required: true]]],
+
+        [name: "cmdb",
+         help: "Command B. Not so practical",
+         options: [[short: "o"], [short: "p"]], arguments: [[]]],
+      ],
+    ]
+
+    assert help(spec) == """
+      Usage: ...
+
+      A very useful tool.
+
+      Options (but not exactly):
+        --log
+          (no documentation)
+
+        -v
+          (no documentation)
+
+      Arguments:
+
+
+      Commands:
+        cmda      This is command A
+        cmdb      Command B
+      """
+  end
 
   #test "autohelp subcommand" do
     #spec = [
