@@ -1,19 +1,60 @@
 defmodule CommandoTest.ParseTest do
   use ExUnit.Case
 
+  alias Commando.Cmd
+
   test "basic command" do
-    assert parse([name: "tool"], []) == %Commando.Cmd{
+    assert parse([name: "tool"], []) == %Cmd{
       options: [], arguments: [], subcmd: nil
     }
   end
 
-  #test "just arguments" do
-    #assert usage_args([[]]) == "tool <arg>"
-    #assert usage_args([[name: "path"]]) == "tool <path>"
-    #assert usage_args([[name: "path", optional: true]]) == "tool [<path>]"
-    #assert usage_args([[name: "path"], [name: "port", optional: true]])
-           #== "tool <path> [<port>]"
-  #end
+  test "just arguments" do
+    spec_base = [name: "tool"]
+
+    spec = spec_base ++ [arguments: []]
+    assert parse(spec, []) == %Cmd{
+      options: [], arguments: [], subcmd: nil
+    }
+
+    spec = spec_base ++ [arguments: []]
+    assert_raise RuntimeError, "Unexpected argument: hello", fn ->
+      parse(spec, ["hello"])
+    end
+
+    spec = spec_base ++ [arguments: [[name: "path", optional: true]]]
+    assert parse(spec, []) == %Cmd{
+      options: [], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["hi"]) == %Cmd{
+      options: [], arguments: ["hi"], subcmd: nil
+    }
+
+    spec = spec_base ++ [arguments: [[name: "path"]]]
+    assert_raise RuntimeError, "Missing required argument: <path>", fn ->
+      parse(spec, [])
+    end
+    assert parse(spec, ["hi"]) == %Cmd{
+      options: [], arguments: ["hi"], subcmd: nil
+    }
+    assert_raise RuntimeError, "Unexpected argument: world", fn ->
+      parse(spec, ["hello", "world"])
+    end
+
+    spec = spec_base ++ [arguments: [[name: "path"], [name: "port", optional: true]]]
+    assert_raise RuntimeError, "Missing required argument: <path>", fn ->
+      parse(spec, [])
+    end
+    assert parse(spec, ["home"]) == %Cmd{
+      options: [], arguments: ["home"], subcmd: nil
+    }
+    assert parse(spec, ["home", "extra"]) == %Cmd{
+      options: [], arguments: ["home", "extra"], subcmd: nil
+    }
+    assert_raise RuntimeError, "Unexpected argument: more", fn ->
+      parse(spec, ["home", "extra", "more"])
+    end
+  end
 
   #test "just options" do
     #assert usage([

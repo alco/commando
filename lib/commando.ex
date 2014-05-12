@@ -469,6 +469,7 @@ defmodule Commando do
 
   defp postprocess_opts_and_args(spec, opts, args) do
     IO.puts "Post-processing #{inspect opts} and #{inspect args}"
+
     # 1. Check if there are any extraneous switches
     option_set = Enum.map(spec[:options], &opt_name_to_atom/1) |> Enum.into(%{})
     Enum.each(opts, fn {name, _} ->
@@ -477,16 +478,50 @@ defmodule Commando do
       end
     end)
 
+    # 2. Check all options for consistency with the spec
+    # 3. Check arguments
+    case check_argument_count(spec, args) do
+      {:extra, index} ->
+        raise RuntimeError, message: "Unexpected argument: #{Enum.at(args, index)}"
+
+      {:missing, index} ->
+        name = Enum.at(spec[:arguments], index)[:name]
+        raise RuntimeError, message: "Missing required argument: <#{name}>"
+
+      nil -> nil
+    end
+    # 4. If it is a command, continue parsing the command
+
     %Commando.Cmd{
       options: opts,
       arguments: args,
     }
-
-    # 2. Check all options for consistency with the spec
-    # 3. Check arguments
-    # 4. If it is a command, continue parsing the command
   end
+
 
   defp opt_name_to_atom(opt),
     do: binary_to_atom(opt[:name] || opt[:short])
+
+  defp check_argument_count(%{arguments: arguments}, args)
+    when is_list(arguments)
+  do
+    {required_cnt, optional_cnt} = Enum.reduce(arguments, {0, 0}, fn
+      %{optional: true}, {req_cnt, opt_cnt} -> {req_cnt, opt_cnt+1}
+      _, {req_cnt, opt_cnt} -> {req_cnt + 1, opt_cnt}
+    end)
+    given_cnt = length(args)
+    cond do
+      given_cnt > required_cnt + optional_cnt ->
+        {:extra, required_cnt + optional_cnt}
+
+      given_cnt < required_cnt ->
+        {:missing, given_cnt}
+
+      true -> nil
+    end
+  end
+
+  defp check_argument_count(_, []), do: nil
+
+  defp check_argument_count(_, _), do: {:extra, 0}
 end
