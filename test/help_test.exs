@@ -25,7 +25,7 @@ defmodule CommandoTest.HelpTest do
         tool <arg>
 
       Arguments:
-        arg     (no documentation)
+        arg       (no documentation)
       """
 
     assert help_args([[name: "path"]]) == """
@@ -33,7 +33,7 @@ defmodule CommandoTest.HelpTest do
         tool <path>
 
       Arguments:
-        path    (no documentation)
+        path      (no documentation)
       """
 
     assert help_args([[name: "path", help: "Path to a directory."], [name: "port", optional: true]]) == """
@@ -41,8 +41,8 @@ defmodule CommandoTest.HelpTest do
         tool <path> [<port>]
 
       Arguments:
-        path    Path to a directory.
-        port    (no documentation)
+        path      Path to a directory.
+        port      (no documentation)
       """
   end
 

@@ -127,7 +127,7 @@ defmodule Commando do
   defp format_command_list(null) when null in [nil, []], do: ""
 
   defp format_command_list(commands),
-    do: (Enum.map(commands, fn x -> inspect(x) end) |> Enum.join("\n"))
+    do: (Enum.map(commands, &format_command_brief/1) |> Enum.join("\n"))
 
 
   defp format_argument_list(null) when null in [nil, []], do: ""
@@ -192,6 +192,13 @@ defmodule Commando do
   defp wrap_option(formatted, _, _), do: formatted
 
 
+  defp format_command_brief(cmd=%{name: name, help: ""}),
+    do: "  #{:io_lib.format('~-10s', [name])}(no documentation)"
+
+  defp format_command_brief(cmd=%{name: name, help: help}),
+    do: "  #{:io_lib.format('~-10s', [name])}#{first_sentence(help)}"
+
+
   defp format_arguments([]), do: ""
 
   defp format_arguments(arguments),
@@ -203,11 +210,18 @@ defmodule Commando do
 
 
   defp format_argument_help(%{name: name, help: ""}),
-    do: "  #{:io_lib.format('~-8s', [name])}(no documentation)"
+    do: "  #{:io_lib.format('~-10s', [name])}(no documentation)"
 
   defp format_argument_help(%{name: name, help: help}),
-    do: "  #{:io_lib.format('~-8s', [name])}#{help}"
+    do: "  #{:io_lib.format('~-10s', [name])}#{help}"
 
+
+  defp first_sentence(str) do
+    case Regex.run(~r/\.(?:  ?[A-Z]|\n|$)/, str, [return: :index]) do
+      [{pos, _}] -> elem(String.split_at(str, pos), 0)
+      nil        -> str
+    end
+  end
 
   ###
 

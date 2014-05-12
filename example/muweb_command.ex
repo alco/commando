@@ -1,4 +1,5 @@
 commands = [
+  :help,
 #  [name: "help",
 #    help: "Display description of the given command.",
 #    arguments: [[name: "[command]"]],
@@ -22,7 +23,7 @@ commands = [
   ],
 
   [name: "proxy",
-    help: "Work as a proxy, transmiting all traffic between client and remote server without alterations, but logging all requests and responses to stdout.",
+    help: "Work as a tunnelling proxy, logging all communications. All traffic between client and remote server is transmitted without alterations. All requests and responses are logged to stdout.",
   ],
 
   [name: "serve",
@@ -43,8 +44,8 @@ commands = [
 spec = Commando.new [
   width: 80,
 
-  name: "muweb",
   prefix: "mix",
+  name: "muweb",
 
   help: "Single task encapsulating a set of useful commands that utilise the μWeb server.",
 
