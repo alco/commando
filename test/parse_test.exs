@@ -110,31 +110,79 @@ defmodule CommandoTest.ParseTest do
     assert parse(spec, ["--no-hi"]) == %Cmd{
       options: [hi: false], arguments: [], subcmd: nil
     }
-
-    #spec = [
-      #name: "tool", list_options: :all,
-      #options: [[name: "hi", short: "h", kind: :boolean]],
-    #]
-    #assert parse(spec, ...) == "tool [-h|--hi]"
-
-    #spec = [
-      #name: "tool", list_options: :short,
-      #options: [[name: "hi", short: "h", kind: :boolean, required: true]],
-    #]
-    #assert parse(spec, ...) == "tool -h"
-
-    #spec = [
-      #name: "tool", list_options: :long,
-      #options: [[name: "hi", short: "h", kind: :boolean, required: true]],
-    #]
-    #assert parse(spec, ...) == "tool --hi"
-
-    #spec = [
-      #name: "tool", list_options: :all,
-      #options: [[name: "hi", short: "h", kind: :boolean, required: true]],
-    #]
-    #assert parse(spec, ...) == "tool {-h|--hi}"
   end
+
+  test ":overwrite modifier for options" do
+    spec = [name: "tool", arguments: [[optional: true]], options: [
+      [name: "mercury", valtype: :boolean, multival: :overwrite],
+    ]]
+
+    assert parse(spec, ["--mercury"]) == %Cmd{
+      options: [mercury: true], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--mercury", "--mercury=false"]) == %Cmd{
+      options: [mercury: false], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--no-mercury", "--mercury"]) == %Cmd{
+      options: [mercury: true], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--no-mercury", "--mercury", "foo"]) == %Cmd{
+      options: [mercury: true], arguments: ["foo"], subcmd: nil
+    }
+  end
+
+  test ":keep modifier for options" do
+    spec = [name: "tool", arguments: [[optional: true]], options: [
+      [name: "mercury", valtype: :boolean, multival: :overwrite],
+      [name: "venus", valtype: :integer, multival: :keep],
+    ]]
+
+    assert parse(spec, ["--venus=13"]) === %Cmd{
+      options: [venus: 13], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--venus", "13", "--venus=0"]) === %Cmd{
+      options: [venus: 13, venus: 0], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--venus=13", "--mercury", "--venus", "4"]) === %Cmd{
+      options: [venus: 13, mercury: true, venus: 4], arguments: [], subcmd: nil
+    }
+  end
+
+  test ":accumulate modifier for options" do
+    spec = [name: "tool", arguments: [[optional: true]], options: [
+      [name: "venus", valtype: :integer, multival: :keep],
+      [name: "earth", valtype: :float, multival: :accumulate],
+    ]]
+
+    assert parse(spec, ["--earth=13"]) === %Cmd{
+      options: [earth: [13.0]], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--earth", "13", "--earth=0"]) === %Cmd{
+      options: [earth: [13.0, 0.0]], arguments: [], subcmd: nil
+    }
+    assert parse(spec, ["--earth=13", "--venus", "11", "--earth", "4"]) === %Cmd{
+      options: [earth: [13.0, 4.0], venus: 11], arguments: [], subcmd: nil
+    }
+  end
+
+  test ":error modifier for options" do
+    spec = [name: "tool", arguments: [[optional: true]], options: [
+      [name: "earth", valtype: :float, multival: :accumulate],
+      [name: "mars", valtype: :string, multival: :error],
+    ]]
+
+    assert parse(spec, ["--mars=13"]) == %Cmd{
+      options: [mars: "13"], arguments: [], subcmd: nil
+    }
+    msg = "Error trying to overwrite the value for option --mars"
+    assert_raise RuntimeError, msg, fn ->
+      parse(spec, ["--mars", "hi", "--mars=bye"])
+    end
+    assert_raise RuntimeError, msg, fn ->
+      parse(spec, ["--mars=hi", "--earth=1", "--mars", "bye"])
+    end
+  end
+
 
   #test "options and arguments" do
     #assert usage([

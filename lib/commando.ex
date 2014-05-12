@@ -515,7 +515,7 @@ defmodule Commando do
     end)
 
     # 2. Check all options for consistency with the spec
-    Enum.reduce(spec[:options], opts, fn opt_spec, opts ->
+    opts = Enum.reduce(spec[:options], opts, fn opt_spec, opts ->
       opt_name = opt_name_to_atom(opt_spec)
       formatted_name = format_option_no_arg(opt_spec)
       case Keyword.get_values(opts, opt_name) do
@@ -524,21 +524,21 @@ defmodule Commando do
             raise RuntimeError, message: "Missing required option: #{formatted_name}"
           end
 
-        [_] -> nil
-
-        _ ->
+        values ->
           case opt_spec[:multival] do
             :error ->
-              msg = "More than one value for a single-value option #{formatted_name}"
-              raise RuntimeError, message: msg
+              if not match?([_], values) do
+                msg = "Error trying to overwrite the value for option #{formatted_name}"
+                raise RuntimeError, message: msg
+              end
 
             :accumulate ->
-              # replace option with the list of values
-              nil
+              opts = Keyword.update!(opts, opt_name, fn _ -> values end)
 
             _ -> nil
           end
       end
+      opts
     end)
 
     # 3. Check arguments
