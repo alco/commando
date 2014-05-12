@@ -55,28 +55,32 @@ defmodule Commando do
 
   def help(%{help: help, options: options}=spec, nil) do
     option_text = if options != [] do
-      "\nOptions:\n" <> format_option_list(options)
+      "Options:\n" <> format_option_list(options)
     end
 
     cmd_arg_text = cond do
       commands=spec[:commands] ->
-        "\nCommands:\n" <> format_command_list(commands)
+        "Commands:\n" <> format_command_list(commands)
 
       arguments=spec[:arguments] ->
-        "\nArguments:\n" <> format_argument_list(arguments)
+        "Arguments:\n" <> format_argument_list(arguments)
 
       true -> ""
     end
 
+    lines =
+      [help, option_text, cmd_arg_text]
+      |> Enum.reject(&( &1 in [nil, ""] ))
+      |> Enum.join("\n\n")
+    if lines != "", do: lines = "\n" <> lines
+
     """
     Usage:
       #{usage(spec, nil)}
-
-    #{help}
-    #{option_text}
-    #{cmd_arg_text}
+    #{lines}
     """
   end
+
 
   def usage(spec, cmd \\ nil)
 
@@ -129,7 +133,7 @@ defmodule Commando do
   defp format_argument_list(null) when null in [nil, []], do: ""
 
   defp format_argument_list(arguments),
-    do: (Enum.map(arguments, fn x -> inspect(x) end) |> Enum.join("\n"))
+    do: (Enum.map(arguments, &format_argument_help/1) |> Enum.join("\n"))
 
 
   defp format_options(null, _) when null in [nil, []], do: ""
@@ -186,6 +190,13 @@ defmodule Commando do
 
   defp format_argument(%{name: name, optional: true}), do: "[<#{name}>]"
   defp format_argument(%{name: name}), do: "<#{name}>"
+
+
+  defp format_argument_help(%{name: name, help: ""}),
+    do: "  #{:io_lib.format('~-8s', [name])}(no documentation)"
+
+  defp format_argument_help(%{name: name, help: help}),
+    do: "  #{:io_lib.format('~-8s', [name])}#{help}"
 
 
   ###
@@ -297,6 +308,9 @@ defmodule Commando do
 
   defp compile_argument([{:name, n}|rest], arg) when is_binary(n),
     do: compile_argument(rest, Map.put(arg, :name, parse_argname(n)))
+
+  defp compile_argument([{:help, h}|rest], arg) when is_binary(h),
+    do: compile_argument(rest, %{arg | help: h})
 
   defp compile_argument([{:optional, o}|rest], arg) when o in [true, false],
     do: compile_argument(rest, %{arg | optional: o})
