@@ -382,8 +382,12 @@ defmodule Commando do
   defp process_definition([{:help, {:full, h}=hh}|rest], spec) when is_binary(h),
     do: process_definition(rest, Map.put(spec, :help, hh))
 
+  defp process_definition([{:help_option, val}|rest], spec)
+    when val in [:top_cmd, :all_cmd],
+    do: process_definition(rest, Map.put(spec, :help_option, val))
+
   defp process_definition([{:options, opt}|rest], spec) when is_list(opt),
-    do: process_definition(rest, %{spec | options: process_options(spec, opt)})
+    do: process_definition(rest, %{spec | options: process_options(opt)})
 
   defp process_definition([{:list_options, kind}|rest], spec)
     when kind in [nil, :short, :long, :all],
@@ -404,10 +408,6 @@ defmodule Commando do
 
   defp process_config([{:autoexec, val}|rest], spec),
     do: process_config(rest, compile_autoexec_param(spec, val))
-
-  defp process_config([{:help_option, val}|rest], spec)
-    when val in [:top_cmd, :all_cmd],
-    do: process_config(rest, Map.put(spec, :help_option, val))
 
   defp process_config([opt|_], _) do
     raise ArgumentError, message: "Unrecognized config option #{inspect opt}"
@@ -431,24 +431,11 @@ defmodule Commando do
         end)
 
 
-  defp process_options(spec, opt) do
-    opts = Enum.map(opt, &(compile_option(&1) |> validate_option()))
-    if spec[:help_option] do
-      opts = [@help_opt_spec|opts]
-    end
-    opts
-  end
-
-  defp process_cmd_options(spec, opt) do
-    opts = Enum.map(opt, &(compile_option(&1) |> validate_option()))
-    if spec[:help_option] == :all_cmd do
-      opts = [@help_opt_spec|opts]
-    end
-    opts
-  end
+  defp process_options(opt),
+    do: (Enum.map(opt, &(compile_option(&1) |> validate_option())))
 
   defp process_commands(spec, cmd),
-    do: Enum.map(cmd, &(compile_command(&1, spec) |> validate_command()))
+    do: Enum.map(cmd, &(compile_command(&1) |> validate_command(spec)))
 
   defp process_arguments(arg),
     do: (Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
@@ -492,27 +479,25 @@ defmodule Commando do
   end
 
 
-  defp compile_command(:help, spec) do
-    Map.put(@help_cmd_spec, :options, process_cmd_options(spec, []))
-  end
+  defp compile_command(:help), do: @help_cmd_spec
 
-  defp compile_command(cmd, spec), do: compile_command(cmd, @cmd_defaults, spec)
+  defp compile_command(cmd), do: compile_command(cmd, @cmd_defaults)
 
-  defp compile_command([], cmd, _spec), do: cmd
+  defp compile_command([], cmd), do: cmd
 
-  defp compile_command([{:name, n}|rest], cmd, spec) when is_binary(n),
-    do: compile_command(rest, Map.put(cmd, :name, n), spec)
+  defp compile_command([{:name, n}|rest], cmd) when is_binary(n),
+    do: compile_command(rest, Map.put(cmd, :name, n))
 
-  defp compile_command([{:help, h}|rest], cmd, spec) when is_binary(h),
-    do: compile_command(rest, %{cmd | help: h}, spec)
+  defp compile_command([{:help, h}|rest], cmd) when is_binary(h),
+    do: compile_command(rest, %{cmd | help: h})
 
-  defp compile_command([{:arguments, arg}|rest], cmd, spec) when is_list(arg),
-    do: compile_command(rest, Map.put(cmd, :arguments, process_arguments(arg)), spec)
+  defp compile_command([{:arguments, arg}|rest], cmd) when is_list(arg),
+    do: compile_command(rest, Map.put(cmd, :arguments, process_arguments(arg)))
 
-  defp compile_command([{:options, opt}|rest], cmd, spec) when is_list(opt),
-    do: compile_command(rest, Map.put(cmd, :options, process_cmd_options(spec, opt)), spec)
+  defp compile_command([{:options, opt}|rest], cmd) when is_list(opt),
+    do: compile_command(rest, Map.put(cmd, :options, process_options(opt)))
 
-  defp compile_command([opt|_], _, _) do
+  defp compile_command([opt|_], _) do
     raise ArgumentError, message: "Unrecognized command parameter #{inspect opt}"
   end
 
@@ -573,6 +558,8 @@ defmodule Commando do
     end
     if spec[:usage] == nil and spec[:help] == nil, do:
       spec = Map.put(spec, :help, "")
+    if spec[:help_option], do:
+      spec = Map.update!(spec, :options, &[@help_opt_spec|&1])
     spec
   end
 
@@ -582,16 +569,14 @@ defmodule Commando do
       msg = "Option should have at least one of :name or :short: #{inspect opt}"
       raise ArgumentError, message: msg
     end
-    if opt[:argname] == nil and opt[:valtype] != :boolean and name != nil do
+    if opt[:argname] == nil and opt[:valtype] != :boolean and name != nil, do:
       opt = Map.put(opt, :argname, name)
-    end
     opt
   end
 
   defp validate_argument(arg=%{}) do
-    if arg[:name] == nil do
+    if arg[:name] == nil, do:
       arg = Map.put(arg, :name, "arg")
-    end
     arg
   end
 
@@ -605,11 +590,13 @@ defmodule Commando do
     args
   end
 
-  defp validate_command(cmd=%{}) do
+  defp validate_command(cmd=%{}, spec) do
     if !cmd[:name] do
       msg = "Expected command to have a name: #{inspect cmd}"
       raise ArgumentError, message: msg
     end
+    if spec[:help_option] == :all_cmd, do:
+      cmd = Map.update!(cmd, :options, &[@help_opt_spec|&1])
     cmd
   end
 

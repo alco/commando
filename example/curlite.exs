@@ -1,7 +1,21 @@
 spec = [
   name: "curlite",
+  version: "Long version string with\nnewlines.\n1.0",
+
+  help: {:full, """
+    Usage: {{usage}}
+    Options:
+      {{options}}
+    """},
+
   help_option: :top_cmd,
+
   arguments: [[name: "url"]],
+
+  options: [
+    {:version, :V},
+    [name: "data", short: "d", help: "Request body. Implies POST method"],
+  ],
 ]
 
 defmodule Curlite do
