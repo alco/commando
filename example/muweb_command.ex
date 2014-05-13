@@ -1,16 +1,10 @@
 commands = [
   :help,
-#  [name: "help",
-#    help: "Display description of the given command.",
-#    arguments: [[name: "[command]"]],
-#  ],
 
   [name: "inspect",
     help: "Log incoming requests to stdout, optionally sending a reply back.",
     options: [
       [name: "reply_file", short: "f",
-       required: false,
-       kind: :string,
        argname: "path",
        help: """
          Send the contents of file at PATH in reponse to incoming requests.
@@ -28,10 +22,10 @@ commands = [
 
   [name: "serve",
     help: "Serve files from the specified directory, recursively.",
-    arguments: [[name: "path"]],
+    arguments: [[name: "path", optional: true]],
     options: [
       [name: "list", short: "l",
-       kind: :boolean,
+       valtype: :boolean,
        help: """
          For directory requests, serve HTML with the list of contents of that directory.
 
@@ -42,34 +36,33 @@ commands = [
 ]
 
 spec = Commando.new [
-  width: 80,
-
   prefix: "mix",
   name: "muweb",
 
   help: "Single task encapsulating a set of useful commands that utilise the μWeb server.",
+  exec_help: true,
 
-  #help: {:full, """
-    #Usage:
-      #{{usage}}
-
-    #Single task encapsulating a set of useful commands that utilise the μWeb server.
-
-    #Options (available for all commands except "help"):
-    #{{options}}
-
-    #Commands:
-    #{{commands}}
-    #"""},
+#  help: {:full, """
+#    Usage:
+#      {{usage}}
+#
+#    Single task encapsulating a set of useful commands that utilise the μWeb server.
+#
+#    Options (available for all commands except "help"):
+#    {{options}}
+#
+#    Commands:
+#    {{commands}}
+#    """},
 
   list_options: :short,
   options: [
-    [name: "host", short: "h", #required: false,
+    [name: "host", short: "h",
      argname: "hostname",
      help: "Hostname to listen on. Accepts extended format with port, e.g. 'localhost:4000'."],
 
     [name: "port", short: "p",
-     kind: :integer,
+     valtype: :integer,
      help: "Port number to listen on."],
   ],
 
@@ -80,19 +73,12 @@ defmodule MuWebCommand do
   @cmd_spec spec
 
   def run(args) do
-    {_opts, _args} = parse_args(args)
+    IO.inspect parse_args(args)
   end
 
-  def help(), do: Commando.help(@cmd_spec)
-
   defp parse_args(args) do
-    IO.inspect @cmd_spec
-    case Commando.parse(@cmd_spec, args) do
-      {:error, reason} ->
-        IO.puts "Error while parsing arguments: #{reason}"
-    end
+    Commando.parse(@cmd_spec, args)
   end
 end
 
-#MuWebCommand.run(System.argv)
-IO.puts MuWebCommand.help()
+MuWebCommand.run(System.argv)
