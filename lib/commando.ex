@@ -241,9 +241,19 @@ defmodule Commando do
       |> Enum.reject(&( &1 in [nil, ""] ))
       |> Enum.join(", ")
     if help == "", do: help = "(no documentation)"
-    "  #{opt_str}\n    #{help}"
+    "  #{opt_str}\n#{print_with_indent(help, 4)}" |> String.rstrip()
   end
 
+
+  defp print_with_indent(str, indent_width) do
+    indent_str =
+      :io_lib.format('~*s', [indent_width, ' '])
+      |> String.from_char_data!()
+
+    String.split(str, "\n")
+    |> Enum.map(&( indent_str <> &1 ))
+    |> Enum.join("\n")
+  end
 
   defp name_to_opt(name), do: String.replace(name, "_", "-")
   #defp opt_to_name(opt), do: String.replace(opt, "-", "_")
