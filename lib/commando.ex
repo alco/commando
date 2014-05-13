@@ -11,8 +11,6 @@ defmodule Commando do
   @default_indent 2
 
   @spec_defaults %{
-    width: 40,
-
     prefix: "",
     exec_help: false,
     exec_version: false,
@@ -363,9 +361,6 @@ defmodule Commando do
   ###
 
   defp process_definition([], spec), do: spec
-
-  defp process_definition([{:width, w}|rest], spec) when is_integer(w),
-    do: process_definition(rest, %{spec | width: w})
 
   defp process_definition([{:name, n}|rest], spec) when is_binary(n),
     do: process_definition(rest, Map.put(spec, :name, n))

@@ -3,7 +3,6 @@
 ** TODO: Add description **
 
 TODO:
-* word wrapping
 * parsing example
 * vararg
 
