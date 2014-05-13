@@ -8,4 +8,3 @@ TODO:
 * parsing example
 * vararg
 * -h option
-* :version option

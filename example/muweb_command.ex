@@ -40,7 +40,10 @@ spec = Commando.new [
   name: "muweb",
 
   help: "Single task encapsulating a set of useful commands that utilise the μWeb server.",
+  version: "1.2.3",
+
   exec_help: true,
+  exec_version: true,
 
 #  help: {:full, """
 #    Usage:
@@ -57,6 +60,8 @@ spec = Commando.new [
 
   list_options: :short,
   options: [
+    :version,
+
     [name: "host", short: "h",
      argname: "hostname",
      help: "Hostname to listen on. Accepts extended format with port, e.g. 'localhost:4000'."],

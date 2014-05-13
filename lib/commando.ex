@@ -13,6 +13,7 @@ defmodule Commando do
 
     prefix: "",
     exec_help: false,
+    exec_version: false,
     options: [],
   }
 
@@ -30,6 +31,14 @@ defmodule Commando do
   @cmd_defaults %{
     options: [],
     help: "",
+  }
+
+  @version_opt_spec %{
+    valtype: :boolean,
+    required: false,
+    help: "Print version information and exit.",
+    short: "v",
+    name: "version",
   }
 
   @help_cmd_spec Map.merge(@cmd_defaults, %{
@@ -286,8 +295,14 @@ defmodule Commando do
   defp process_definition([{:prefix, p}|rest], spec) when is_binary(p),
     do: process_definition(rest, %{spec | prefix: p})
 
+  defp process_definition([{:version, v}|rest], spec) when is_binary(v),
+    do: process_definition(rest, Map.put(spec, :version, v))
+
   defp process_definition([{:exec_help, e}|rest], spec) when e in [false, true],
     do: process_definition(rest, %{spec | exec_help: e})
+
+  defp process_definition([{:exec_version, e}|rest], spec) when e in [false, true],
+    do: process_definition(rest, %{spec | exec_version: e})
 
   defp process_definition([{:usage, u}|rest], spec) when is_binary(u),
     do: process_definition(rest, Map.put(spec, :usage, u))
@@ -326,6 +341,11 @@ defmodule Commando do
     do: (Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
          |> validate_arguments())
 
+
+  defp compile_option(:version), do: @version_opt_spec
+
+  defp compile_option({:version, kind}) when kind in [:v, :V],
+    do: Map.put(@version_opt_spec, :short, atom_to_binary(kind))
 
   defp compile_option(opt), do: compile_option(opt, @opt_defaults)
 
@@ -565,6 +585,12 @@ defmodule Commando do
       end
       opts
     end)
+
+    # 2/3. Execute version option if instructed to
+    if Keyword.get(opts, :version) != nil and topspec == nil and spec[:exec_version] do
+      IO.puts spec[:version]
+      System.halt()
+    end
 
     # 3. Check arguments
     case check_argument_count(spec, args) do
