@@ -4,6 +4,7 @@
 
 TODO:
 * parsing example
+* error reporting
 * vararg
 
 * REFACTOR ALL THE THINGS!!!

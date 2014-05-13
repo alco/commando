@@ -5,6 +5,7 @@ defmodule Commando.Mixfile do
     [app: :commando,
      version: "0.0.1",
      elixir: "~> 0.13.1",
+     elixirc_paths: ["lib", "example/mix"],
      deps: deps]
   end
 
