@@ -8,6 +8,8 @@ defmodule Commando.Cmd do
 end
 
 defmodule Commando do
+  @default_indent 2
+
   @spec_defaults %{
     width: 40,
 
@@ -137,9 +139,16 @@ defmodule Commando do
   def help(spec, cmd \\ nil)
 
   def help(%{help: {:full, help}}=spec, nil) do
+    lines = String.split(help, "\n")
+
+    option_line = Enum.find(lines, &String.contains?(&1, "{{options}}"))
+    option_indent = byte_size(option_line) - byte_size(String.lstrip(option_line))
+    options_text = format_option_list(spec[:options], option_indent)
+    options_text = String.slice(options_text, option_indent, byte_size(options_text))
+
     help
     |> String.replace("{{usage}}", usage(spec))
-    |> String.replace("{{options}}", format_option_list(spec[:options]))
+    |> String.replace("{{options}}", options_text)
     |> String.replace("{{commands}}", format_command_list(spec[:commands]))
     |> String.replace("{{arguments}}", format_argument_list(spec[:arguments]))
   end
@@ -147,7 +156,7 @@ defmodule Commando do
   def help(%{help: help}=spec, nil) do
     options = spec[:options]
     option_text = if not (options in [nil, []]) do
-      "Options:\n" <> format_option_list(options)
+      "Options:\n" <> format_option_list(options, @default_indent)
     end
 
     cmd_arg_text = cond do
@@ -186,10 +195,11 @@ defmodule Commando do
 
   ###
 
-  defp format_option_list(null) when null in [nil, []], do: ""
+  defp format_option_list(null, indent) when null in [nil, []],
+    do: print_with_indent("", indent)
 
-  defp format_option_list(options),
-    do: (Enum.map(options, &format_option_help/1) |> Enum.join("\n\n"))
+  defp format_option_list(options, indent),
+    do: (Enum.map(options, &format_option_help(&1, indent)) |> Enum.join("\n\n"))
 
 
   defp format_command_list(null) when null in [nil, []], do: ""
@@ -235,13 +245,16 @@ defmodule Commando do
   end
 
 
-  defp format_option_help(opt=%{help: help}) do
+  defp format_option_help(opt=%{help: help}, indent) do
     opt_str =
       [format_option(opt, :short), format_option(opt, :long)]
       |> Enum.reject(&( &1 in [nil, ""] ))
       |> Enum.join(", ")
     if help == "", do: help = "(no documentation)"
-    "  #{opt_str}\n#{print_with_indent(help, 4)}" |> String.rstrip()
+
+    opt_str = print_with_indent(opt_str, indent)
+    help_str = print_with_indent(help, indent + @default_indent)
+    Enum.join([opt_str, help_str], "\n") |> String.rstrip()
   end
 
 
