@@ -33,6 +33,14 @@ defmodule Commando do
     help: "",
   }
 
+  @help_opt_spec %{
+    valtype: :boolean,
+    required: false,
+    help: "Print description of the command.",
+    short: "h",
+    name: "help",
+  }
+
   @version_opt_spec %{
     valtype: :boolean,
     required: false,
@@ -301,6 +309,10 @@ defmodule Commando do
   defp process_definition([{:autoexec, val}|rest], spec),
     do: process_definition(rest, compile_autoexec_param(spec, val))
 
+  defp process_definition([{:help_option, val}|rest], spec)
+    when val in [:top_cmd, :all_cmd],
+    do: process_definition(rest, Map.put(spec, :help_option, val))
+
   defp process_definition([{:exec_version, e}|rest], spec) when e in [false, true],
     do: process_definition(rest, %{spec | exec_version: e})
 
@@ -314,7 +326,7 @@ defmodule Commando do
     do: process_definition(rest, Map.put(spec, :help, hh))
 
   defp process_definition([{:options, opt}|rest], spec) when is_list(opt),
-    do: process_definition(rest, %{spec | options: process_options(opt)})
+    do: process_definition(rest, %{spec | options: process_options(spec, opt)})
 
   defp process_definition([{:list_options, kind}|rest], spec)
     when kind in [nil, :short, :long, :all],
@@ -324,7 +336,7 @@ defmodule Commando do
     do: process_definition(rest, Map.put(spec, :arguments, process_arguments(arg)))
 
   defp process_definition([{:commands, cmd}|rest], spec) when is_list(cmd),
-    do: process_definition(rest, Map.put(spec, :commands, process_commands(cmd)))
+    do: process_definition(rest, Map.put(spec, :commands, process_commands(spec, cmd)))
 
   defp process_definition([opt|_], _) do
     raise ArgumentError, message: "Unrecognized option #{inspect opt}"
@@ -348,11 +360,24 @@ defmodule Commando do
         end)
 
 
-  defp process_options(opt),
-    do: Enum.map(opt, &(compile_option(&1) |> validate_option()))
+  defp process_options(spec, opt) do
+    opts = Enum.map(opt, &(compile_option(&1) |> validate_option()))
+    if spec[:help_option] do
+      opts = [@help_opt_spec|opts]
+    end
+    opts
+  end
 
-  defp process_commands(cmd),
-    do: Enum.map(cmd, &(compile_command(&1) |> validate_command()))
+  defp process_cmd_options(spec, opt) do
+    opts = Enum.map(opt, &(compile_option(&1) |> validate_option()))
+    if spec[:help_option] == :all_cmd do
+      opts = [@help_opt_spec|opts]
+    end
+    opts
+  end
+
+  defp process_commands(spec, cmd),
+    do: Enum.map(cmd, &(compile_command(&1, spec) |> validate_command()))
 
   defp process_arguments(arg),
     do: (Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
@@ -396,25 +421,27 @@ defmodule Commando do
   end
 
 
-  defp compile_command(:help), do: @help_cmd_spec
+  defp compile_command(:help, spec) do
+    Map.put(@help_cmd_spec, :options, process_cmd_options(spec, []))
+  end
 
-  defp compile_command(cmd), do: compile_command(cmd, @cmd_defaults)
+  defp compile_command(cmd, spec), do: compile_command(cmd, @cmd_defaults, spec)
 
-  defp compile_command([], cmd), do: cmd
+  defp compile_command([], cmd, _spec), do: cmd
 
-  defp compile_command([{:name, n}|rest], cmd) when is_binary(n),
-    do: compile_command(rest, Map.put(cmd, :name, n))
+  defp compile_command([{:name, n}|rest], cmd, spec) when is_binary(n),
+    do: compile_command(rest, Map.put(cmd, :name, n), spec)
 
-  defp compile_command([{:help, h}|rest], cmd) when is_binary(h),
-    do: compile_command(rest, %{cmd | help: h})
+  defp compile_command([{:help, h}|rest], cmd, spec) when is_binary(h),
+    do: compile_command(rest, %{cmd | help: h}, spec)
 
-  defp compile_command([{:arguments, arg}|rest], cmd) when is_list(arg),
-    do: compile_command(rest, Map.put(cmd, :arguments, process_arguments(arg)))
+  defp compile_command([{:arguments, arg}|rest], cmd, spec) when is_list(arg),
+    do: compile_command(rest, Map.put(cmd, :arguments, process_arguments(arg)), spec)
 
-  defp compile_command([{:options, opt}|rest], cmd) when is_list(opt),
-    do: compile_command(rest, Map.put(cmd, :options, process_options(opt)))
+  defp compile_command([{:options, opt}|rest], cmd, spec) when is_list(opt),
+    do: compile_command(rest, Map.put(cmd, :options, process_cmd_options(spec, opt)), spec)
 
-  defp compile_command([opt|_], _) do
+  defp compile_command([opt|_], _, _) do
     raise ArgumentError, message: "Unrecognized command parameter #{inspect opt}"
   end
 
@@ -603,7 +630,16 @@ defmodule Commando do
       opts
     end)
 
-    # 2/3. Execute version option if instructed to
+    # 2/3. Execute help or version option if instructed to
+    if Keyword.get(opts, :help) != nil and (topspec || spec)[:exec_help] do
+      if topspec == nil do
+        IO.puts help(spec)
+      else
+        IO.puts help(topspec, spec[:name])
+      end
+      System.halt()
+    end
+
     if Keyword.get(opts, :version) != nil and topspec == nil and spec[:exec_version] do
       IO.puts spec[:version]
       System.halt()
@@ -621,7 +657,7 @@ defmodule Commando do
             raise RuntimeError, message: "Missing required argument: <#{name}>"
 
           spec[:commands] ->
-            if topspec == nil and spec[:exec_help] and has_help_cmd(spec) do
+            if topspec == nil and spec[:exec_help] and (has_help_cmd(spec) or has_help_opt(spec)) do
               try do
                 IO.puts help(spec)
               rescue
@@ -679,6 +715,10 @@ defmodule Commando do
     commands = spec[:commands]
     (commands
      && Enum.find(commands, fn cmd_spec -> cmd_spec[:name] == "help" end)) != nil
+  end
+
+  defp has_help_opt(spec) do
+    spec[:options] != [] and hd(spec[:options])[:name] == "help"
   end
 
 

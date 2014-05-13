@@ -7,4 +7,3 @@ TODO:
 * proper indentation
 * parsing example
 * vararg
-* -h option
