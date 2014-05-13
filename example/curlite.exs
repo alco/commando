@@ -1,6 +1,6 @@
 spec = [
   name: "curlite",
-  version: "Long version string with\nnewlines.\n1.0",
+  version: "Long version string with\nnewlines.\ncurlite 1.0",
 
   help: {:full, """
     Usage: {{usage}}

@@ -47,7 +47,7 @@ spec = [
   name: "faketask",
 
   help: "Single task encapsulating a set of useful commands.",
-  version: "1.2.3",
+  version: "faketask 1.2.3",
 
   # We could provide a custom message by passing a tuple {:full, <string>}
 #  help: {:full, """
