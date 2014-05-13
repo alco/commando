@@ -65,8 +65,9 @@ defmodule Commando do
   @doc """
   Create a new command specification.
   """
-  def new(spec) do
-    process_definition(spec, @spec_defaults) |> validate_spec()
+  def new(spec, config \\ []) do
+    spec = process_definition(spec, @spec_defaults) |> validate_spec()
+    process_config(config, spec)
   end
 
   @doc """
@@ -306,16 +307,6 @@ defmodule Commando do
   defp process_definition([{:version, v}|rest], spec) when is_binary(v),
     do: process_definition(rest, Map.put(spec, :version, v))
 
-  defp process_definition([{:autoexec, val}|rest], spec),
-    do: process_definition(rest, compile_autoexec_param(spec, val))
-
-  defp process_definition([{:help_option, val}|rest], spec)
-    when val in [:top_cmd, :all_cmd],
-    do: process_definition(rest, Map.put(spec, :help_option, val))
-
-  defp process_definition([{:exec_version, e}|rest], spec) when e in [false, true],
-    do: process_definition(rest, %{spec | exec_version: e})
-
   defp process_definition([{:usage, u}|rest], spec) when is_binary(u),
     do: process_definition(rest, Map.put(spec, :usage, u))
 
@@ -340,6 +331,20 @@ defmodule Commando do
 
   defp process_definition([opt|_], _) do
     raise ArgumentError, message: "Unrecognized option #{inspect opt}"
+  end
+
+
+  defp process_config([], spec), do: spec
+
+  defp process_config([{:autoexec, val}|rest], spec),
+    do: process_config(rest, compile_autoexec_param(spec, val))
+
+  defp process_config([{:help_option, val}|rest], spec)
+    when val in [:top_cmd, :all_cmd],
+    do: process_config(rest, Map.put(spec, :help_option, val))
+
+  defp process_config([opt|_], _) do
+    raise ArgumentError, message: "Unrecognized config option #{inspect opt}"
   end
 
 

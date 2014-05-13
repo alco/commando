@@ -7,3 +7,5 @@ TODO:
 * proper indentation
 * parsing example
 * vararg
+
+* REFACTOR ALL THE THINGS!!!

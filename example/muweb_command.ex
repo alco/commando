@@ -35,14 +35,12 @@ commands = [
   ],
 ]
 
-spec = Commando.new [
+spec = Commando.new([
   prefix: "mix",
   name: "muweb",
 
   help: "Single task encapsulating a set of useful commands that utilise the μWeb server.",
   version: "1.2.3",
-
-  autoexec: true,
 
 #  help: {:full, """
 #    Usage:
@@ -71,7 +69,7 @@ spec = Commando.new [
   ],
 
   commands: commands,
-]
+], autoexec: true)
 
 defmodule MuWebCommand do
   @cmd_spec spec

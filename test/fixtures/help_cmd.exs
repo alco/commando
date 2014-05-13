@@ -3,7 +3,6 @@ defmodule HelpCommand do
     spec = [
       name: "tool",
       help: "A very practical tool.",
-      autoexec: :help,
       list_options: :all,
       options: [
         [short: "v", name: "verbose", valtype: :boolean],
@@ -19,7 +18,7 @@ defmodule HelpCommand do
         ]],
       ],
     ]
-    cmd = Commando.new(spec)
+    cmd = Commando.new(spec, autoexec: :help)
     IO.inspect Commando.parse(cmd)
   end
 end
