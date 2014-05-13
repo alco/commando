@@ -182,7 +182,9 @@ defmodule Commando do
 
     lines =
       [help, option_text, cmd_arg_text]
-      |> Enum.reject(&( &1 in [nil, ""] ))
+      |> Enum.reject(&( &1 == nil ))
+      |> Enum.map(&String.rstrip/1)
+      |> Enum.reject(&( &1 == "" ))
       |> Enum.join("\n\n")
     if lines != "", do: lines = "\n" <> lines
 

@@ -19,7 +19,6 @@ Usage:
 Single task encapsulating a set of useful commands that utilise the μWeb
 server.
 
-
 Options:
   -v, --version
     Print version information and exit.
