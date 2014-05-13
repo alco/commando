@@ -4,7 +4,6 @@
 
 TODO:
 * word wrapping
-* proper indentation
 * parsing example
 * vararg
 

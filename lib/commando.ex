@@ -151,11 +151,16 @@ defmodule Commando do
       format_command_list(spec[:commands], cmd_indent)
       |> cut_leading_indent(cmd_indent)
 
+    arg_indent = get_indent(lines, "{{arguments}}")
+    arg_text =
+      format_argument_list(spec[:arguments], arg_indent)
+      |> cut_leading_indent(arg_indent)
+
     help
     |> String.replace("{{usage}}", usage(spec))
     |> String.replace("{{options}}", opt_text)
     |> String.replace("{{commands}}", cmd_text)
-    |> String.replace("{{arguments}}", format_argument_list(spec[:arguments]))
+    |> String.replace("{{arguments}}", arg_text)
   end
 
   def help(%{help: help}=spec, nil) do
@@ -169,7 +174,7 @@ defmodule Commando do
         "Commands:\n" <> format_command_list(commands, @default_indent)
 
       arguments=spec[:arguments] ->
-        "Arguments:\n" <> format_argument_list(arguments)
+        "Arguments:\n" <> format_argument_list(arguments, @default_indent)
 
       true -> ""
     end
@@ -223,10 +228,11 @@ defmodule Commando do
     do: (Enum.map(commands, &format_command_brief(&1, indent)) |> Enum.join("\n"))
 
 
-  defp format_argument_list(null) when null in [nil, []], do: ""
+  defp format_argument_list(null, indent) when null in [nil, []],
+    do: print_with_indent("", indent)
 
-  defp format_argument_list(arguments),
-    do: (Enum.map(arguments, &format_argument_help/1) |> Enum.join("\n"))
+  defp format_argument_list(arguments, indent),
+    do: (Enum.map(arguments, &format_argument_help(&1, indent)) |> Enum.join("\n"))
 
 
   defp format_options(null, _) when null in [nil, []], do: ""
@@ -325,11 +331,21 @@ defmodule Commando do
   defp format_argument(%{name: name}), do: "<#{name}>"
 
 
-  defp format_argument_help(%{name: name, help: ""}),
-    do: "  #{:io_lib.format('~-10s', [name])}(no documentation)"
+  defp format_argument_help(%{name: name, help: ""}, indent) do
+    justified_arg_str =
+      :io_lib.format('~-*s', [10 + @default_indent - indent, name])
+      |> String.from_char_data!()
+    arg_str = print_with_indent(justified_arg_str, indent)
+    arg_str <> "(no documentation)"
+  end
 
-  defp format_argument_help(%{name: name, help: help}),
-    do: "  #{:io_lib.format('~-10s', [name])}#{help}"
+  defp format_argument_help(%{name: name, help: help}, indent) do
+    justified_arg_str =
+      :io_lib.format('~-*s', [10 + @default_indent - indent, name])
+      |> String.from_char_data!()
+    arg_str = print_with_indent(justified_arg_str, indent)
+    arg_str <> help
+  end
 
 
   defp first_sentence(str) do
