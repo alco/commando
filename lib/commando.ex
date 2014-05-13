@@ -141,26 +141,29 @@ defmodule Commando do
   def help(%{help: {:full, help}}=spec, nil) do
     lines = String.split(help, "\n")
 
-    opt_indent = get_indent(lines, "{{options}}")
-    opt_text =
+    opt_text = if opt_indent=get_indent(lines, "{{options}}") do
       format_option_list(spec[:options], opt_indent)
       |> cut_leading_indent(opt_indent)
+    end
 
-    cmd_indent = get_indent(lines, "{{commands}}")
-    cmd_text =
+    cmd_text = if cmd_indent=get_indent(lines, "{{commands}}") do
       format_command_list(spec[:commands], cmd_indent)
       |> cut_leading_indent(cmd_indent)
+    end
 
-    arg_indent = get_indent(lines, "{{arguments}}")
-    arg_text =
+    arg_text = if arg_indent=get_indent(lines, "{{arguments}}") do
       format_argument_list(spec[:arguments], arg_indent)
       |> cut_leading_indent(arg_indent)
+    end
 
+    help = String.replace(help, "{{usage}}", usage(spec))
+    if opt_text, do:
+      help = String.replace(help, "{{options}}", opt_text)
+    if cmd_text, do:
+      help = String.replace(help, "{{commands}}", cmd_text)
+    if arg_text, do:
+      help = String.replace(help, "{{arguments}}", arg_text)
     help
-    |> String.replace("{{usage}}", usage(spec))
-    |> String.replace("{{options}}", opt_text)
-    |> String.replace("{{commands}}", cmd_text)
-    |> String.replace("{{arguments}}", arg_text)
   end
 
   def help(%{help: help}=spec, nil) do
@@ -207,7 +210,9 @@ defmodule Commando do
 
   defp get_indent(lines, string) do
     line = Enum.find(lines, &String.contains?(&1, string))
-    byte_size(line) - byte_size(String.lstrip(line))
+    if line do
+      byte_size(line) - byte_size(String.lstrip(line))
+    end
   end
 
   defp cut_leading_indent(string, indent),

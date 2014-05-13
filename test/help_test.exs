@@ -201,13 +201,13 @@ defmodule CommandoTest.HelpTest do
         A very useful tool.
 
         Options (but not exactly):
-        {{options}}
+          {{options}}
 
         Arguments:
         {{arguments}}
 
         Commands:
-        {{commands}}
+          {{commands}}
         """},
       options: [[name: "log", valtype: :boolean], [short: "v"]],
       commands: [
