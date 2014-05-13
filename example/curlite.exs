@@ -41,9 +41,15 @@ defmodule Curlite do
   @moduledoc """
   Implementation of a part of curl's command-line interface.
 
-  Run it from the project root as
+  Run it from the project root. Some examples:
 
       mix run example/curlite.exs -h
+
+      mix run example/curlite.exs -i localhost
+
+      mix run example/curlite.exs -v -I localhost
+
+      mix run example/curlite.exs -v -i --data-binary @notes.txt http://localhost
 
   """
 
