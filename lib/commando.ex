@@ -298,8 +298,8 @@ defmodule Commando do
   defp process_definition([{:version, v}|rest], spec) when is_binary(v),
     do: process_definition(rest, Map.put(spec, :version, v))
 
-  defp process_definition([{:exec_help, e}|rest], spec) when e in [false, true],
-    do: process_definition(rest, %{spec | exec_help: e})
+  defp process_definition([{:autoexec, val}|rest], spec),
+    do: process_definition(rest, compile_autoexec_param(spec, val))
 
   defp process_definition([{:exec_version, e}|rest], spec) when e in [false, true],
     do: process_definition(rest, %{spec | exec_version: e})
@@ -329,6 +329,23 @@ defmodule Commando do
   defp process_definition([opt|_], _) do
     raise ArgumentError, message: "Unrecognized option #{inspect opt}"
   end
+
+
+  defp compile_autoexec_param(spec, flag) when flag in [true, false],
+    do: Map.merge(spec, %{exec_help: flag, exec_version: flag})
+
+  defp compile_autoexec_param(spec, :help),
+    do: Map.put(spec, :exec_help, true)
+
+  defp compile_autoexec_param(spec, :version),
+    do: Map.put(spec, :exec_version, true)
+
+  defp compile_autoexec_param(spec, list) when is_list(list),
+    do: Enum.reduce(list, spec, fn
+          p, spec when p in [:help, :version] ->
+            compile_autoexec_param(spec, p)
+          other, _ -> raise ArgumentError, message: "Bad autoexec parameter: #{other}"
+        end)
 
 
   defp process_options(opt),

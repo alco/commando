@@ -42,8 +42,7 @@ spec = Commando.new [
   help: "Single task encapsulating a set of useful commands that utilise the μWeb server.",
   version: "1.2.3",
 
-  exec_help: true,
-  exec_version: true,
+  autoexec: true,
 
 #  help: {:full, """
 #    Usage:

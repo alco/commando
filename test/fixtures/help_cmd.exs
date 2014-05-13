@@ -3,7 +3,7 @@ defmodule HelpCommand do
     spec = [
       name: "tool",
       help: "A very practical tool.",
-      exec_help: true,
+      autoexec: :help,
       list_options: :all,
       options: [
         [short: "v", name: "verbose", valtype: :boolean],
