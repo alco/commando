@@ -258,7 +258,6 @@ defmodule CommandoTest.ParseTest do
   test "autohelp subcommand" do
     spec = [
       name: "tool",
-      exec_help: false,
       commands: [
         :help,
       ],
@@ -269,6 +268,69 @@ defmodule CommandoTest.ParseTest do
         name: "help", options: [], arguments: [], subcmd: nil
       }
     }
+
+    assert parse(spec, ["help", "bad"]) == %Cmd {
+      name: "tool", options: [], arguments: nil, subcmd: %Cmd {
+        name: "help", options: [], arguments: ["bad"], subcmd: nil
+      }
+    }
+
+    expected = """
+      Usage:
+        tool [-v|--verbose] [-d] <command> [...]
+
+      A very practical tool.
+
+      Options:
+        -v, --verbose
+          (no documentation)
+
+        -d
+          (no documentation)
+
+      Commands:
+        help      Print description of the given command
+        cmd       (no documentation)
+
+      """
+
+    output = System.cmd("mix run test/fixtures/help_cmd.exs")
+    assert output == expected
+
+    output = System.cmd("mix run test/fixtures/help_cmd.exs help")
+    assert output == expected
+
+    output = System.cmd("mix run test/fixtures/help_cmd.exs help help")
+    assert output == """
+      Usage:
+        tool help [<command>]
+
+      Print description of the given command.
+
+      Arguments:
+        command   The command to describe. When omitted, help for the tool itself is printed.
+
+      """
+
+    output = System.cmd("mix run test/fixtures/help_cmd.exs help cmd")
+    assert output == """
+      Usage:
+        tool cmd --opt=<opt> [-f|--foo] [<arg>]
+
+      Options:
+        --opt=<opt>
+          (no documentation)
+
+        -f, --foo
+          (no documentation)
+
+      Arguments:
+        arg       (no documentation)
+
+      """
+
+    output = System.cmd("mix run test/fixtures/help_cmd.exs help bad")
+    assert output == "Unrecognized command: bad\n"
   end
 
 

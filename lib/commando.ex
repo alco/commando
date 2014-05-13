@@ -12,7 +12,7 @@ defmodule Commando do
     width: 40,
 
     prefix: "",
-    exec_help: true,
+    exec_help: false,
     options: [],
   }
 
@@ -55,7 +55,16 @@ defmodule Commando do
   @doc """
   Parse command-line arguments according to the spec.
   """
-  def parse(spec, args \\ System.argv) do
+  def parse(spec, args \\ System.argv)
+
+  def parse({topspec, spec}, args),
+    do: parse(topspec, spec, args)
+
+  def parse(spec, args),
+    do: parse(nil, spec, args)
+
+  defp parse(topspec, spec, args) do
+    #IO.puts "PARSING topspec = #{inspect topspec}"
     opts = spec_to_parser_opts(spec)
     commands = spec[:commands]
 
@@ -72,7 +81,7 @@ defmodule Commando do
       {opts, ["--"|args], []} -> {opts, args}
       {opts, args, []}        -> {opts, args}
     end
-    postprocess_opts_and_args(spec, opts, args)
+    postprocess_opts_and_args(topspec, spec, opts, args)
   end
 
   @doc """
@@ -148,7 +157,7 @@ defmodule Commando do
 
   def help(%{}=spec, cmd) do
     unless cmd_spec = Enum.find(spec[:commands], &( &1[:name] == cmd )) do
-      raise ArgumentError, "Undefined command #{cmd}"
+      raise ArgumentError, message: "Unrecognized command: #{cmd}"
     end
     Map.merge(cmd_spec, %{
       prefix: Enum.join([spec[:prefix], spec[:name]], " "),
@@ -519,7 +528,7 @@ defmodule Commando do
     end)
   end
 
-  defp postprocess_opts_and_args(spec, opts, args) do
+  defp postprocess_opts_and_args(topspec, spec, opts, args) do
     # 1. Check if there are any extraneous switches
     option_set = Enum.map(spec[:options], fn opt ->
       {opt_name_to_atom(opt), true}
@@ -569,6 +578,16 @@ defmodule Commando do
             raise RuntimeError, message: "Missing required argument: <#{name}>"
 
           spec[:commands] ->
+            if topspec == nil and spec[:exec_help] and has_help_cmd(spec) do
+              try do
+                IO.puts help(spec)
+              rescue
+                e in [ArgumentError] ->
+                  IO.puts e.message
+                  System.halt(1)
+              end
+              System.halt()
+            end
             raise RuntimeError, message: "Missing command"
         end
       nil -> nil
@@ -581,7 +600,27 @@ defmodule Commando do
         raise RuntimeError, message: "Unrecognized command: #{arg}"
       end
       args = nil
-      parse(cmd_spec, rest_args)
+      parse(topspec || spec, cmd_spec, rest_args)
+    end
+
+    if topspec == nil and spec[:exec_help] do
+      is_help_cmd = has_help_cmd(spec) and (cmd == nil or cmd.name == "help")
+      halt? = try do
+        case {is_help_cmd, cmd && cmd.arguments} do
+          {false, _} -> nil
+
+          {true, [arg]} ->
+            IO.puts help(spec, arg)
+
+          {true, null} when null in [nil, []] ->
+            IO.puts help(spec)
+        end
+      rescue
+        e in [ArgumentError] ->
+          IO.puts e.message
+          System.halt(1)
+      end
+      if halt?, do: System.halt()
     end
 
     %Commando.Cmd{
@@ -590,6 +629,13 @@ defmodule Commando do
       arguments: args,
       subcmd: cmd,
     }
+  end
+
+
+  defp has_help_cmd(spec) do
+    commands = spec[:commands]
+    (commands
+     && Enum.find(commands, fn cmd_spec -> cmd_spec[:name] == "help" end)) != nil
   end
 
 
