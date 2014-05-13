@@ -141,15 +141,20 @@ defmodule Commando do
   def help(%{help: {:full, help}}=spec, nil) do
     lines = String.split(help, "\n")
 
-    option_line = Enum.find(lines, &String.contains?(&1, "{{options}}"))
-    option_indent = byte_size(option_line) - byte_size(String.lstrip(option_line))
-    options_text = format_option_list(spec[:options], option_indent)
-    options_text = String.slice(options_text, option_indent, byte_size(options_text))
+    opt_indent = get_indent(lines, "{{options}}")
+    opt_text =
+      format_option_list(spec[:options], opt_indent)
+      |> cut_leading_indent(opt_indent)
+
+    cmd_indent = get_indent(lines, "{{commands}}")
+    cmd_text =
+      format_command_list(spec[:commands], cmd_indent)
+      |> cut_leading_indent(cmd_indent)
 
     help
     |> String.replace("{{usage}}", usage(spec))
-    |> String.replace("{{options}}", options_text)
-    |> String.replace("{{commands}}", format_command_list(spec[:commands]))
+    |> String.replace("{{options}}", opt_text)
+    |> String.replace("{{commands}}", cmd_text)
     |> String.replace("{{arguments}}", format_argument_list(spec[:arguments]))
   end
 
@@ -161,7 +166,7 @@ defmodule Commando do
 
     cmd_arg_text = cond do
       commands=spec[:commands] ->
-        "Commands:\n" <> format_command_list(commands)
+        "Commands:\n" <> format_command_list(commands, @default_indent)
 
       arguments=spec[:arguments] ->
         "Arguments:\n" <> format_argument_list(arguments)
@@ -195,6 +200,15 @@ defmodule Commando do
 
   ###
 
+  defp get_indent(lines, string) do
+    line = Enum.find(lines, &String.contains?(&1, string))
+    byte_size(line) - byte_size(String.lstrip(line))
+  end
+
+  defp cut_leading_indent(string, indent),
+    do: String.slice(string, indent, byte_size(string))
+
+
   defp format_option_list(null, indent) when null in [nil, []],
     do: print_with_indent("", indent)
 
@@ -202,10 +216,11 @@ defmodule Commando do
     do: (Enum.map(options, &format_option_help(&1, indent)) |> Enum.join("\n\n"))
 
 
-  defp format_command_list(null) when null in [nil, []], do: ""
+  defp format_command_list(null, indent) when null in [nil, []],
+    do: print_with_indent("", indent)
 
-  defp format_command_list(commands),
-    do: (Enum.map(commands, &format_command_brief/1) |> Enum.join("\n"))
+  defp format_command_list(commands, indent),
+    do: (Enum.map(commands, &format_command_brief(&1, indent)) |> Enum.join("\n"))
 
 
   defp format_argument_list(null) when null in [nil, []], do: ""
@@ -283,11 +298,21 @@ defmodule Commando do
   defp wrap_option(formatted, _, _), do: formatted
 
 
-  defp format_command_brief(%{name: name, help: ""}),
-    do: "  #{:io_lib.format('~-10s', [name])}(no documentation)"
+  defp format_command_brief(%{name: name, help: ""}, indent) do
+    justified_cmd_str =
+      :io_lib.format('~-*s', [10 + @default_indent - indent, name])
+      |> String.from_char_data!()
+    cmd_str = print_with_indent(justified_cmd_str, indent)
+    cmd_str <> "(no documentation)"
+  end
 
-  defp format_command_brief(%{name: name, help: help}),
-    do: "  #{:io_lib.format('~-10s', [name])}#{first_sentence(help)}"
+  defp format_command_brief(%{name: name, help: help}, indent) do
+    justified_cmd_str =
+      :io_lib.format('~-*s', [10 + @default_indent - indent, name])
+      |> String.from_char_data!()
+    cmd_str = print_with_indent(justified_cmd_str, indent)
+    cmd_str <> first_sentence(help)
+  end
 
 
   defp format_arguments([]), do: ""
