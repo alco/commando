@@ -81,14 +81,13 @@ defmodule CommandoTest.UsageTest do
   test "command with prefix" do
     prefix = [prefix: "prefix", name: "tool"]
 
-    cmd = Commando.new prefix
-    assert Commando.usage(cmd) |> String.strip == "prefix tool"
+    assert usage(prefix) == "prefix tool"
 
-    cmd = Commando.new prefix ++ [arguments: [[name: "hi"]]]
-    assert Commando.usage(cmd) |> String.strip == "prefix tool <hi>"
+    spec = prefix ++ [arguments: [[name: "hi"]]]
+    assert usage(spec) == "prefix tool <hi>"
 
-    cmd = Commando.new prefix ++ [options: [[name: "hi"]], list_options: :long]
-    assert Commando.usage(cmd) |> String.strip == "prefix tool [--hi=<hi>]"
+    spec = prefix ++ [options: [[name: "hi"]], list_options: :long]
+    assert usage(spec) == "prefix tool [--hi=<hi>]"
   end
 
   test "subcommands" do
@@ -128,9 +127,13 @@ defmodule CommandoTest.UsageTest do
     assert usage(spec, "help") == "tool help [<command>]"
   end
 
-  defp usage(opts, cmd \\ nil),
-    do: Commando.new(opts) |> Commando.usage(cmd) |> String.strip
+  defp usage(opts, cmd \\ nil) do
+    {:ok, spec} = Commando.new(opts)
+    Commando.usage(spec, cmd) |> String.rstrip
+  end
 
-  defp usage_args(args),
-    do: Commando.new([name: "tool", arguments: args]) |> Commando.usage |> String.strip
+  defp usage_args(args) do
+    {:ok, spec} = Commando.new([name: "tool", arguments: args])
+    Commando.usage(spec)
+  end
 end

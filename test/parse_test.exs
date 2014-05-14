@@ -255,6 +255,7 @@ defmodule CommandoTest.ParseTest do
     }
   end
 
+  @tag slowpoke: true
   test "autohelp subcommand" do
     spec = [
       name: "tool",
@@ -275,9 +276,6 @@ defmodule CommandoTest.ParseTest do
       }
     }
 
-    # Precompile so that mix output doesn't interfere with the script output
-    System.cmd("mix compile")
-
     expected = """
       Usage:
         tool [-v|--verbose] [-d] <command> [...]
@@ -297,14 +295,14 @@ defmodule CommandoTest.ParseTest do
 
       """
 
-    output = System.cmd("mix run test/fixtures/help_cmd.exs")
-    assert output == expected
+    # Precompile so that mix output doesn't interfere with the script output
+    System.cmd("mix compile")
 
-    output = System.cmd("mix run test/fixtures/help_cmd.exs help")
-    assert output == expected
+    assert run_test_cmd([]) == expected
 
-    output = System.cmd("mix run test/fixtures/help_cmd.exs help help")
-    assert output == """
+    assert run_test_cmd(["help"]) == expected
+
+    assert run_test_cmd(["help", "help"]) == """
       Usage:
         tool help [<command>]
 
@@ -315,8 +313,7 @@ defmodule CommandoTest.ParseTest do
 
       """
 
-    output = System.cmd("mix run test/fixtures/help_cmd.exs help cmd")
-    assert output == """
+    assert run_test_cmd(["help", "cmd"]) == """
       Usage:
         tool cmd --opt=<opt> [-f|--foo] [<arg>]
 
@@ -332,11 +329,31 @@ defmodule CommandoTest.ParseTest do
 
       """
 
-    output = System.cmd("mix run test/fixtures/help_cmd.exs help bad")
-    assert output == "Unrecognized command: bad\n"
+    assert run_test_cmd(["help", "bad"]) == "Unrecognized command: bad\n"
   end
 
 
-  defp parse(spec, args),
-    do: Commando.new(spec) |> Commando.parse(args)
+  defp parse(spec, args) do
+    {:ok, spec} = Commando.new(spec)
+    Commando.parse(spec, args)
+  end
+
+  defp run_test_cmd(args) do
+    argstr = Enum.join(args, " ")
+    System.cmd("mix run test/fixtures/help_cmd.exs #{argstr}")
+  end
+
+  #defp run_test_cmd(args) do
+    #import ExUnit.CaptureIO
+    #capture_io(fn ->
+      #try do
+        #Mix.Task.run("run", ["test/fixtures/help_cmd.exs"|args])
+        #raise RuntimeError, message: "Did not receive proper exit from run"
+      #catch
+        #:exit, {Commando, 0} ->
+          #Code.unload_files(["test/fixtures/help_cmd.exs"])
+          #Mix.Task.reenable("run")
+      #end
+    #end)
+  #end
 end

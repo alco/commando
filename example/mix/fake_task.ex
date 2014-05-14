@@ -100,7 +100,8 @@ defmodule Mix.Tasks.Faketask do
 
   """
 
-  @cmd_spec Commando.new(spec, autoexec: true)
+  {:ok, spec} = Commando.new(spec, autoexec: true, format_errors: true)
+  @cmd_spec spec
 
   def run(args) do
     %Commando.Cmd{

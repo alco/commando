@@ -41,7 +41,9 @@ defmodule Curlite do
   @moduledoc """
   Implementation of a part of curl's command-line interface.
 
-  Run it from the project root. Some examples:
+  Run it from the project root with `mix run`.
+
+  Some examples:
 
       mix run example/curlite.exs -h
 
@@ -53,7 +55,8 @@ defmodule Curlite do
 
   """
 
-  @cmd_spec Commando.new(spec, autoexec: true)
+  {:ok, spec} = Commando.new(spec, autoexec: true, format_errors: true)
+  @cmd_spec spec
 
   def run() do
     # Commando.parse parses System.argv by default
@@ -62,6 +65,10 @@ defmodule Curlite do
       arguments: [addr],
     } = safe_exec(fn -> Commando.parse(@cmd_spec) end)
 
+    process_command(opts, addr)
+  end
+
+  defp process_command(opts, addr) do
     IO.puts "Processing options"
     IO.puts "=================="
     default_opts = %{
@@ -141,6 +148,7 @@ defmodule Curlite do
   defp process_option({:data_binary, data}, acc) do
     post_data(acc, data)
   end
+
 
   defp post_data(map, data) do
     Map.merge(map, %{data: data, method: :post})
