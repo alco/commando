@@ -3,8 +3,8 @@
 ** TODO: Add description **
 
 TODO:
-* parsing example
 * error reporting
 * vararg
+* advanced argument handling
 
 * REFACTOR ALL THE THINGS!!!
