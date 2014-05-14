@@ -464,6 +464,10 @@ defmodule Commando do
     when t in [:boolean, :integer, :float, :string],
     do: compile_option(rest, %{opt | valtype: t})
 
+  defp compile_option([{:default, val}|rest], opt),
+    #when t in [:boolean, :integer, :float, :string],
+    do: compile_option(rest, Map.put(opt, :default, val))
+
   defp compile_option([{:multival, kind}|rest], opt)
     when kind in [:overwrite, :keep, :accumulate, :error],
     do: compile_option(rest, Map.put(opt, :multival, kind))
@@ -569,8 +573,12 @@ defmodule Commando do
       msg = "Option should have at least one of :name or :short: #{inspect opt}"
       raise ArgumentError, message: msg
     end
-    if opt[:argname] == nil and opt[:valtype] != :boolean and name != nil, do:
+    if opt[:argname] == nil and opt[:valtype] != :boolean and name != nil do
       opt = Map.put(opt, :argname, name)
+    end
+    if opt[:default] && opt[:required] do
+      raise ArgumentError, message: "Incompatible option parameters: :default and :required"
+    end
     opt
   end
 
@@ -669,6 +677,10 @@ defmodule Commando do
         [] ->
           if opt_spec[:required] do
             raise RuntimeError, message: "Missing required option: #{formatted_name}"
+          end
+
+          if default=opt_spec[:default] do
+            opts = opts ++ [{opt_name, default}]
           end
 
         values ->
