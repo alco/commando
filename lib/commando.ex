@@ -519,6 +519,9 @@ defmodule Commando do
   defp compile_argument([{:optional, o}|rest], arg) when o in [true, false],
     do: compile_argument(rest, %{arg | optional: o})
 
+  defp compile_argument([{:default, val}|rest], arg),
+    do: compile_argument(rest, Map.put(arg, :default, val))
+
   defp compile_argument([opt|_], _) do
     raise ArgumentError, message: "Unrecognized argument parameter #{inspect opt}"
   end
@@ -583,8 +586,12 @@ defmodule Commando do
   end
 
   defp validate_argument(arg=%{}) do
-    if arg[:name] == nil, do:
+    if arg[:name] == nil do
       arg = Map.put(arg, :name, "arg")
+    end
+    if arg[:default] && !arg[:optional] do
+      raise ArgumentError, message: "Argument parameter :default implies optional=true"
+    end
     arg
   end
 
@@ -739,6 +746,10 @@ defmodule Commando do
             end
             raise RuntimeError, message: "Missing command"
         end
+
+      {:add, val} ->
+        args = args ++ [val]
+
       nil -> nil
     end
 
@@ -829,6 +840,13 @@ defmodule Commando do
 
       given_cnt < required_cnt ->
         {:missing, given_cnt}
+
+      arguments != [] ->
+        # FIXME: half-baked solution
+        default = hd(arguments)[:default]
+        if given_cnt < required_cnt + optional_cnt && default do
+          {:add, default}
+        end
 
       true -> nil
     end
