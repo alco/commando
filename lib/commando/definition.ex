@@ -69,80 +69,88 @@ defmodule Commando.Definition do
 
   defp process_definition([], spec), do: spec
 
-  defp process_definition([{:name, n}|rest], spec) when is_binary(n),
-    do: process_definition(rest, Map.put(spec, :name, n))
+  defp process_definition([param|rest], spec) do
+    spec = case param do
+      {:name, n} when is_binary(n) ->
+        Map.put(spec, :name, n)
 
-  defp process_definition([{:prefix, p}|rest], spec) when is_binary(p),
-    do: process_definition(rest, %{spec | prefix: p})
+      {:prefix, p} when is_binary(p) ->
+        %{spec | prefix: p}
 
-  defp process_definition([{:version, v}|rest], spec) when is_binary(v),
-    do: process_definition(rest, Map.put(spec, :version, v))
+      {:version, v} when is_binary(v) ->
+        Map.put(spec, :version, v)
 
-  defp process_definition([{:usage, u}|rest], spec) when is_binary(u),
-    do: process_definition(rest, Map.put(spec, :usage, u))
+      {:usage, u} when is_binary(u) ->
+        Map.put(spec, :usage, u)
 
-  defp process_definition([{:help, h}|rest], spec) when is_binary(h),
-    do: process_definition(rest, %{spec | help: h})
+      {:help, h} when is_binary(h) ->
+        %{spec | help: h}
 
-  defp process_definition([{:help, {:full, h}=hh}|rest], spec) when is_binary(h),
-    do: process_definition(rest, %{spec | help: hh})
+      {:help, {:full, h}=hh} when is_binary(h) ->
+        %{spec | help: hh}
 
-  defp process_definition([{:help_option, val}|rest], spec)
-    when val in [:top_cmd, :all_cmd],
-    do: process_definition(rest, Map.put(spec, :help_option, val))
+      {:help_option, val} when val in [:top_cmd, :all_cmd] ->
+        Map.put(spec, :help_option, val)
 
-  defp process_definition([{:options, opt}|rest], spec) when is_list(opt),
-    do: process_definition(rest, %{spec | options: process_options(opt)})
+      {:options, opt} when is_list(opt) ->
+        %{spec | options: process_options(opt)}
 
-  defp process_definition([{:list_options, kind}|rest], spec)
-    when kind in [nil, :short, :long, :all],
-    do: process_definition(rest, Map.put(spec, :list_options, kind))
+      {:list_options, kind} when kind in [nil, :short, :long, :all] ->
+        Map.put(spec, :list_options, kind)
 
-  defp process_definition([{:arguments, arg}|rest], spec) when is_list(arg),
-    do: process_definition(rest, Map.put(spec, :arguments, process_arguments(arg)))
+      {:arguments, arg} when is_list(arg) ->
+        Map.put(spec, :arguments, process_arguments(arg))
 
-  defp process_definition([{:commands, cmd}|rest], spec) when is_list(cmd),
-    do: process_definition(rest, Map.put(spec, :commands, process_commands(spec, cmd)))
+      {:commands, cmd} when is_list(cmd) ->
+        Map.put(spec, :commands, process_commands(spec, cmd))
 
-  defp process_definition([opt|_], _) do
-    config_error("Unrecognized option #{inspect opt}")
+      opt ->
+        config_error("Unrecognized option #{inspect opt}")
+    end
+    process_definition(rest, spec)
   end
 
   ###
 
   defp process_config([], spec), do: spec
 
-  defp process_config([{:autoexec, val}|rest], spec),
-    do: process_config(rest, compile_autoexec_param(spec, val))
+  defp process_config([param|rest], spec) do
+    spec = case param do
+      {:autoexec, val} ->
+        compile_autoexec_param(spec, val)
 
-  defp process_config([{:halt, val}|rest], spec)
-    when val in [true, false, :exit],
-    do: process_config(rest, Map.put(spec, :halt, val))
+      {:halt, val} when val in [true, false, :exit] ->
+        Map.put(spec, :halt, val)
 
-  defp process_config([{:format_errors, flag}|rest], spec)
-    when flag in [true, false],
-    do: process_config(rest, Map.put(spec, :format_errors, flag))
+      {:format_errors, flag} when flag in [true, false] ->
+        Map.put(spec, :format_errors, flag)
 
-  defp process_config([opt|_], _) do
-    config_error("Unrecognized config option #{inspect opt}")
+      opt ->
+        config_error("Unrecognized config option #{inspect opt}")
+    end
+    process_config(rest, spec)
   end
 
+  ###
 
-  defp compile_autoexec_param(spec, flag) when flag in [true, false],
-    do: Map.merge(spec, %{exec_help: flag, exec_version: flag})
+  defp compile_autoexec_param(spec, param) do
+    case param do
+      flag when flag in [true, false] ->
+        Map.merge(spec, %{exec_help: flag, exec_version: flag})
 
-  defp compile_autoexec_param(spec, :help),
-    do: Map.put(spec, :exec_help, true)
+      :help ->
+        Map.put(spec, :exec_help, true)
 
-  defp compile_autoexec_param(spec, :version),
-    do: Map.put(spec, :exec_version, true)
+      :version ->
+        Map.put(spec, :exec_version, true)
 
-  defp compile_autoexec_param(spec, list) when is_list(list),
-    do: Enum.reduce(list, spec, fn
-          p, spec when p in [:help, :version] ->
-            compile_autoexec_param(spec, p)
+      list when is_list(list) ->
+        Enum.reduce(list, spec, fn
+          p, spec when p in [:help, :version] -> compile_autoexec_param(spec, p)
           other, _ -> config_error("Invalid :autoexec parameter value: #{other}")
         end)
+    end
+  end
 
   ###
 
@@ -156,6 +164,7 @@ defmodule Commando.Definition do
     do: (Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
          |> validate_arguments())
 
+  ###
 
   defp compile_option(:version), do: @version_opt_spec
 
@@ -164,37 +173,40 @@ defmodule Commando.Definition do
 
   defp compile_option(opt), do: compile_option(opt, @opt_defaults)
 
+
   defp compile_option([], opt), do: opt
 
-  defp compile_option([{:name, <<_, _, _::binary>>=n}|rest], opt),
-    do: compile_option(rest, Map.put(opt, :name, n))
+  defp compile_option([param|rest], opt) do
+    opt = case param do
+      {:name, <<_, _, _::binary>>=n} ->
+        Map.put(opt, :name, n)
 
-  defp compile_option([{:short, <<_>>=s}|rest], opt),
-    do: compile_option(rest, Map.put(opt, :short, s))
+      {:short, <<_>>=s} ->
+        Map.put(opt, :short, s)
 
-  defp compile_option([{:argname, n}|rest], opt) when is_binary(n),
-    do: compile_option(rest, Map.put(opt, :argname, n))
+      {:argname, n} when is_binary(n) ->
+        Map.put(opt, :argname, n)
 
-  defp compile_option([{:valtype, t}|rest], opt)
-    when t in [:boolean, :integer, :float, :string],
-    do: compile_option(rest, %{opt | valtype: t})
+      {:valtype, t} when t in [:boolean, :integer, :float, :string] ->
+        %{opt | valtype: t}
 
-  defp compile_option([{:default, val}|rest], opt),
-    #when t in [:boolean, :integer, :float, :string],
-    do: compile_option(rest, Map.put(opt, :default, val))
+      {:default, val} ->
+              #when t in [:boolean, :integer, :float, :string],
+        Map.put(opt, :default, val)
 
-  defp compile_option([{:multival, kind}|rest], opt)
-    when kind in [:overwrite, :keep, :accumulate, :error],
-    do: compile_option(rest, Map.put(opt, :multival, kind))
+      {:multival, kind} when kind in [:overwrite, :keep, :accumulate, :error] ->
+        Map.put(opt, :multival, kind)
 
-  defp compile_option([{:required, r}|rest], opt) when r in [true, false],
-    do: compile_option(rest, %{opt | required: r})
+      {:required, r} when r in [true, false] ->
+        %{opt | required: r}
 
-  defp compile_option([{:help, h}|rest], opt) when is_binary(h),
-    do: compile_option(rest, %{opt | help: h})
+      {:help, h} when is_binary(h) ->
+        %{opt | help: h}
 
-  defp compile_option([opt|_], _) do
-    config_error("Unrecognized option parameter #{inspect opt}")
+      opt ->
+        config_error("Unrecognized option parameter #{inspect opt}")
+    end
+    compile_option(rest, opt)
   end
 
 
@@ -202,43 +214,53 @@ defmodule Commando.Definition do
 
   defp compile_command(cmd), do: compile_command(cmd, @cmd_defaults)
 
+
   defp compile_command([], cmd), do: cmd
 
-  defp compile_command([{:name, n}|rest], cmd) when is_binary(n),
-    do: compile_command(rest, Map.put(cmd, :name, n))
+  defp compile_command([param|rest], cmd) do
+    cmd = case param do
+      {:name, n} when is_binary(n) ->
+        Map.put(cmd, :name, n)
 
-  defp compile_command([{:help, h}|rest], cmd) when is_binary(h),
-    do: compile_command(rest, %{cmd | help: h})
+      {:help, h}when is_binary(h) ->
+        %{cmd | help: h}
 
-  defp compile_command([{:arguments, arg}|rest], cmd) when is_list(arg),
-    do: compile_command(rest, Map.put(cmd, :arguments, process_arguments(arg)))
+      {:arguments, arg} when is_list(arg) ->
+        Map.put(cmd, :arguments, process_arguments(arg))
 
-  defp compile_command([{:options, opt}|rest], cmd) when is_list(opt),
-    do: compile_command(rest, Map.put(cmd, :options, process_options(opt)))
+      {:options, opt} when is_list(opt) ->
+        Map.put(cmd, :options, process_options(opt))
 
-  defp compile_command([opt|_], _) do
-    config_error("Unrecognized command parameter #{inspect opt}")
+      opt ->
+        config_error("Unrecognized command parameter #{inspect opt}")
+    end
+    compile_command(rest, cmd)
   end
 
 
   defp compile_argument(arg), do: compile_argument(arg, @arg_defaults)
 
+
   defp compile_argument([], arg), do: arg
 
-  defp compile_argument([{:name, n}|rest], arg) when is_binary(n),
-    do: compile_argument(rest, Map.put(arg, :name, n))
+  defp compile_argument([param|rest], arg) do
+    arg = case param do
+      {:name, n} when is_binary(n) ->
+        Map.put(arg, :name, n)
 
-  defp compile_argument([{:help, h}|rest], arg) when is_binary(h),
-    do: compile_argument(rest, %{arg | help: h})
+      {:help, h} when is_binary(h) ->
+        %{arg | help: h}
 
-  defp compile_argument([{:optional, o}|rest], arg) when o in [true, false],
-    do: compile_argument(rest, %{arg | optional: o})
+      {:optional, o} when o in [true, false] ->
+        %{arg | optional: o}
 
-  defp compile_argument([{:default, val}|rest], arg),
-    do: compile_argument(rest, Map.put(arg, :default, val))
+      {:default, val} ->
+        Map.put(arg, :default, val)
 
-  defp compile_argument([opt|_], _) do
-    config_error("Unrecognized argument parameter #{inspect opt}")
+      opt ->
+        config_error("Unrecognized argument parameter #{inspect opt}")
+    end
+    compile_argument(rest, arg)
   end
 
   ###
