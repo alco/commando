@@ -28,7 +28,7 @@ commands = [
 
   [name: "serve",
    help: "Serve files from the specified directory, recursively.",
-   arguments: [[name: "path", optional: true]],
+   arguments: [[name: "path", optional: true, default: "."]],
    options: [
      [name: "list", short: "l",
       valtype: :boolean,
@@ -70,10 +70,12 @@ spec = [
 
     [name: "host", short: "h",
      argname: "hostname",
+     default: "localhost",
      help: "Hostname to listen on. Accepts extended format with port, e.g. 'localhost:4000'."],
 
     [name: "port", short: "p",
      valtype: :integer,
+     default: 1234,
      help: "Port number to listen on."],
   ],
 
@@ -88,15 +90,69 @@ defmodule Mix.Tasks.Faketask do
   @moduledoc """
   Implementation of a Mix task demonstrating Commando's features.
 
-  Run it from the project root as
+  Run it from the project root. Examples:
 
       mix faketask
+
+      mix faketask -p 13 --host 0.0.0.0 serve
+
+      mix faketask inspect -f reply.txt
 
   """
 
   @cmd_spec Commando.new(spec, autoexec: true)
 
   def run(args) do
-    IO.inspect Commando.parse(@cmd_spec, args)
+    %Commando.Cmd{
+      options: opts,
+      subcmd: cmd,
+    } = safe_exec(fn -> Commando.parse(@cmd_spec, args) end)
+
+    # At this point cmd != nil and opts is a list.
+    IO.puts "Global options:"
+    IO.puts "  host: #{opts[:host]}"
+    IO.puts "  port: #{opts[:port]}"
+
+    IO.puts "Executing command '#{cmd.name}'...\n"
+    exec_cmd(cmd)
+  end
+
+
+  defp exec_cmd(%{name: "inspect", options: opts}) do
+    if path=opts[:reply_file] do
+      IO.puts "Will reply with data from file #{path}"
+    end
+    IO.puts "..."
+    IO.puts "Done inspecting"
+  end
+
+
+  defp exec_cmd(%{name: "proxy"}) do
+    IO.puts "..."
+    IO.puts "Done proxying"
+  end
+
+
+  defp exec_cmd(%{name: "serve", arguments: [path]}) do
+    IO.puts "Serving files from directory: #{path}"
+    Stream.repeatedly(fn ->
+      IO.write "."
+      :timer.sleep(200)
+    end)
+    |> Enum.take(10)
+
+    IO.puts "just kidding"
+    IO.puts "Done serving"
+  end
+
+
+  defp safe_exec(f) do
+    try do
+      f.()
+    rescue
+      e in [RuntimeError] ->
+        IO.puts e.message
+        System.halt(1)
+    end
   end
 end

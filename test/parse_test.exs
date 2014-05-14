@@ -275,6 +275,9 @@ defmodule CommandoTest.ParseTest do
       }
     }
 
+    # Precompile so that mix output doesn't interfere with the script output
+    System.cmd("mix compile")
+
     expected = """
       Usage:
         tool [-v|--verbose] [-d] <command> [...]
