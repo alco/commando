@@ -127,9 +127,9 @@ defmodule Commando.Parser do
     # 2/3. Execute help or version option if instructed to
     if Keyword.get(opts, :help) != nil and (topspec || spec)[:exec_help] do
       if topspec == nil do
-        IO.puts Command.help(spec)
+        IO.puts Commando.help(spec)
       else
-        IO.puts Command.help(topspec, spec[:name])
+        IO.puts Commando.help(topspec, spec[:name])
       end
       halt(topspec || spec)
     end
