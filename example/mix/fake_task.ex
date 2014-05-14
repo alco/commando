@@ -133,6 +133,8 @@ defmodule Mix.Tasks.Faketask do
   end
 
 
+  # we are sure that arguments==[path] because we provided a default value
+  # for it
   defp exec_cmd(%{name: "serve", arguments: [path]}) do
     IO.puts "Serving files from directory: #{path}"
     Stream.repeatedly(fn ->
