@@ -38,19 +38,19 @@ defmodule Commando.Parser do
       opt_name = opt_name_to_atom(opt)
       kind = []
 
-      if valtype=opt[:valtype], do:
-        kind = [valtype|kind]
+      if valtype=opt[:valtype], do: kind = [valtype|kind]
+
       case opt[:multival] do
         default when default in [nil, :overwrite] ->
           nil
         keep when keep in [:keep, :accumulate, :error] ->
           kind = [:keep|kind]
       end
-      if kind != [], do:
-        switches = [{opt_name, kind}|switches]
+      if kind != [], do: switches = [{opt_name, kind}|switches]
 
-      if short=opt[:short], do:
+      if short=opt[:short] do
         aliases = [{binary_to_atom(short), opt_name}|aliases]
+      end
 
       {switches, aliases}
     end)
