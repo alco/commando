@@ -3,15 +3,12 @@ defmodule Commando.Parser do
 
   alias Commando.Util
 
-  def parse({topspec, spec}, args) when is_map(topspec),
-    do: parse(topspec, spec, args)
 
-  def parse(spec, args),
-    do: parse(nil, spec, args)
+  def parse(spec, args, nil), do: do_parse(nil, spec, args)
 
   ###
 
-  defp parse(topspec, spec, args) do
+  defp do_parse(topspec, spec, args) do
     opts = spec_to_parser_opts(spec)
     commands = spec[:commands]
 
@@ -177,7 +174,7 @@ defmodule Commando.Parser do
         raise RuntimeError, message: "Unrecognized command: #{arg}"
       end
       args = nil
-      parse(topspec || spec, cmd_spec, rest_args)
+      do_parse(topspec || spec, cmd_spec, rest_args)
     end
 
     if topspec == nil and spec[:exec_help] do

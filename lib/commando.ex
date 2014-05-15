@@ -18,24 +18,37 @@ defmodule Commando do
   @doc """
   Parse command-line arguments according to the spec.
   """
-  def parse(spec, opts \\ []) do
+  def parse(spec),
+    do: parse(spec, [])
+
+  def parse(spec, opts),
+    do: parse(spec, opts, nil)
+
+  def parse(spec, opts, cont) do
     try do
-      valid_opts = Enum.reduce(opts, [], fn
-        {:args, args}=opt, acc when is_list(args) ->
-          [opt|acc]
-
-        {:config, config}, acc when is_list(config) ->
-          spec = Util.compile_config(spec, config)
-          [{:spec, spec}|acc]
-
-        opt, _ -> Util.config_error("Bas config parameter: #{inspect opt}")
-      end)
-      args = valid_opts[:args] || System.argv
-      spec = valid_opts[:spec] || spec
-      Commando.Parser.parse(spec, args)
+      {spec, args} = process_config(spec, opts)
+      Commando.Parser.parse(spec, args, cont)
     catch
-      :throw, {:config_error, msg} -> {:error, msg}
+      :throw, {:config_error, msg} ->
+        raise ArgumentError, message: msg
     end
+  end
+
+
+  defp process_config(spec, opts) do
+    valid_opts = Enum.reduce(opts, [], fn
+      {:args, args}=opt, acc when is_list(args) ->
+        [opt|acc]
+
+      {:config, config}, acc when is_list(config) ->
+        spec = Util.compile_config(spec, config)
+        [{:spec, spec}|acc]
+
+      opt, _ -> Util.config_error("Bad config parameter: #{inspect opt}")
+    end)
+    spec = valid_opts[:spec] || spec
+    args = valid_opts[:args] || System.argv
+    {spec, args}
   end
 
 
