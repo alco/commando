@@ -58,11 +58,12 @@ defmodule Commando.Definition do
     ],
   })
 
-  ###
 
-  def compile(spec, config) do
-    spec = process_definition(spec, @spec_defaults) |> validate_spec()
-    process_config(config, spec)
+  import Commando.Util, only: [config_error: 1]
+
+
+  def compile(spec) do
+    process_definition(spec, @spec_defaults) |> validate_spec()
   end
 
   ###
@@ -108,48 +109,6 @@ defmodule Commando.Definition do
         config_error("Unrecognized option #{inspect opt}")
     end
     process_definition(rest, spec)
-  end
-
-  ###
-
-  defp process_config([], spec), do: spec
-
-  defp process_config([param|rest], spec) do
-    spec = case param do
-      {:autoexec, val} ->
-        compile_autoexec_param(spec, val)
-
-      {:halt, val} when val in [true, false, :exit] ->
-        Map.put(spec, :halt, val)
-
-      {:format_errors, flag} when flag in [true, false] ->
-        Map.put(spec, :format_errors, flag)
-
-      opt ->
-        config_error("Unrecognized config option #{inspect opt}")
-    end
-    process_config(rest, spec)
-  end
-
-  ###
-
-  defp compile_autoexec_param(spec, param) do
-    case param do
-      flag when flag in [true, false] ->
-        Map.merge(spec, %{exec_help: flag, exec_version: flag})
-
-      :help ->
-        Map.put(spec, :exec_help, true)
-
-      :version ->
-        Map.put(spec, :exec_version, true)
-
-      list when is_list(list) ->
-        Enum.reduce(list, spec, fn
-          p, spec when p in [:help, :version] -> compile_autoexec_param(spec, p)
-          other, _ -> config_error("Invalid :autoexec parameter value: #{other}")
-        end)
-    end
   end
 
   ###
@@ -319,11 +278,5 @@ defmodule Commando.Definition do
     if spec[:help_option] == :all_cmd, do:
       cmd = Map.update!(cmd, :options, &[@help_opt_spec|&1])
     cmd
-  end
-
-  ###
-
-  defp config_error(msg) do
-    throw {:config_error, msg}
   end
 end

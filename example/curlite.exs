@@ -55,15 +55,17 @@ defmodule Curlite do
 
   """
 
-  {:ok, spec} = Commando.new(spec, autoexec: true, format_errors: true)
+  {:ok, spec} = Commando.new(spec)
   @cmd_spec spec
 
   def run() do
+    config = [autoexec: true, format_errors: true]
+
     # Commando.parse parses System.argv by default
     %Commando.Cmd{
       options: opts,
       arguments: [addr],
-    } = safe_exec(fn -> Commando.parse(@cmd_spec) end)
+    } = safe_exec(fn -> Commando.parse(@cmd_spec, config: config) end)
 
     process_command(opts, addr)
   end

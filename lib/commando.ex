@@ -2,15 +2,13 @@ defmodule Commando do
   @default_indent 2
 
   alias Commando.Util
-  alias Commando.Definition
 
   @doc """
   Create a new command specification.
   """
-  def new(spec, config \\ []) do
+  def new(spec) do
     try do
-      spec = Definition.compile(spec, config)
-      {:ok, spec}
+      {:ok, Commando.Definition.compile(spec)}
     catch
       :throw, {:config_error, msg} -> {:error, msg}
     end
@@ -20,8 +18,25 @@ defmodule Commando do
   @doc """
   Parse command-line arguments according to the spec.
   """
-  def parse(spec, args \\ System.argv),
-    do: Commando.Parser.parse(spec, args)
+  def parse(spec, opts \\ []) do
+    try do
+      valid_opts = Enum.reduce(opts, [], fn
+        {:args, args}=opt, acc when is_list(args) ->
+          [opt|acc]
+
+        {:config, config}, acc when is_list(config) ->
+          spec = Util.compile_config(spec, config)
+          [{:spec, spec}|acc]
+
+        opt, _ -> Util.config_error("Bas config parameter: #{inspect opt}")
+      end)
+      args = valid_opts[:args] || System.argv
+      spec = valid_opts[:spec] || spec
+      Commando.Parser.parse(spec, args)
+    catch
+      :throw, {:config_error, msg} -> {:error, msg}
+    end
+  end
 
 
   @doc """

@@ -335,7 +335,7 @@ defmodule CommandoTest.ParseTest do
 
   defp parse(spec, args) do
     {:ok, spec} = Commando.new(spec)
-    Commando.parse(spec, args)
+    Commando.parse(spec, args: args)
   end
 
   defp run_test_cmd(args) do

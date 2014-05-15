@@ -100,14 +100,15 @@ defmodule Mix.Tasks.Faketask do
 
   """
 
-  {:ok, spec} = Commando.new(spec, autoexec: true, format_errors: true)
+  {:ok, spec} = Commando.new(spec)
   @cmd_spec spec
 
   def run(args) do
+    config = [autoexec: true, format_errors: true]
     %Commando.Cmd{
       options: opts,
       subcmd: cmd,
-    } = safe_exec(fn -> Commando.parse(@cmd_spec, args) end)
+    } = safe_exec(fn -> Commando.parse(@cmd_spec, config: config, args: args) end)
 
     # At this point cmd != nil and opts is a list.
     IO.puts "Global options:"
