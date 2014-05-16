@@ -9,6 +9,20 @@ defmodule CommandoTest.ParseTest do
     }}
   end
 
+  test "return errors" do
+    spec = [name: "tool", arguments: []]
+    assert parse(spec, ["hello"], [on_error: :return])
+           == {:error, {:bad_arg, "hello"}}
+  end
+
+  test "raise errors" do
+    spec = [name: "tool", arguments: []]
+    msg = "Unexpected argument: hello"
+    assert_raise RuntimeError, msg, fn ->
+      parse(spec, ["hello"], [on_error: :raise])
+    end
+  end
+
   test "just arguments" do
     spec = [name: "tool", arguments: []]
     assert parse(spec, []) == {:ok, %Cmd{
@@ -16,9 +30,9 @@ defmodule CommandoTest.ParseTest do
     }}
 
     spec = [name: "tool", arguments: []]
-    #assert_raise RuntimeError, "Unexpected argument: hello", fn ->
-      #parse(spec, ["hello"])
-    #end
+    assert_raise RuntimeError, "Unexpected argument: hello", fn ->
+      parse(spec, ["hello"])
+    end
 
     spec = [name: "tool", arguments: [[name: "path", optional: true]]]
     assert parse(spec, []) == {:ok, %Cmd{
@@ -29,29 +43,29 @@ defmodule CommandoTest.ParseTest do
     }}
 
     spec = [name: "tool", arguments: [[name: "path"]]]
-    #assert_raise RuntimeError, "Missing required argument: <path>", fn ->
-      #parse(spec, [])
-    #end
+    assert_raise RuntimeError, "Missing required argument: <path>", fn ->
+      parse(spec, [])
+    end
     assert parse(spec, ["hi"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: ["hi"], subcmd: nil
     }}
-    #assert_raise RuntimeError, "Unexpected argument: world", fn ->
-      #parse(spec, ["hello", "world"])
-    #end
+    assert_raise RuntimeError, "Unexpected argument: world", fn ->
+      parse(spec, ["hello", "world"])
+    end
 
     spec = [name: "tool", arguments: [[name: "path"], [name: "port", optional: true]]]
-    #assert_raise RuntimeError, "Missing required argument: <path>", fn ->
-      #parse(spec, [])
-    #end
+    assert_raise RuntimeError, "Missing required argument: <path>", fn ->
+      parse(spec, [])
+    end
     assert parse(spec, ["home"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: ["home"], subcmd: nil
     }}
     assert parse(spec, ["home", "extra"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: ["home", "extra"], subcmd: nil
     }}
-    #assert_raise RuntimeError, "Unexpected argument: more", fn ->
-      #parse(spec, ["home", "extra", "more"])
-    #end
+    assert_raise RuntimeError, "Unexpected argument: more", fn ->
+      parse(spec, ["home", "extra", "more"])
+    end
   end
 
   test "just options" do
@@ -65,45 +79,45 @@ defmodule CommandoTest.ParseTest do
     assert parse(spec, ["--hi", "hello"]) == {:ok, %Cmd{
       name: "tool", options: [hi: "hello"], arguments: [], subcmd: nil
     }}
-    #assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
-      #parse(spec, ["--hi"])
-    #end
-    #assert_raise RuntimeError, "Unrecognized option: --bye", fn ->
-      #parse(spec, ["--bye"])
-    #end
-    #assert_raise RuntimeError, "Unrecognized option: --bye", fn ->
-      #parse(spec, ["--bye", "hello"])
-    #end
+    assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
+      parse(spec, ["--hi"])
+    end
+    assert_raise RuntimeError, "Unrecognized option: --bye", fn ->
+      parse(spec, ["--bye"])
+    end
+    assert_raise RuntimeError, "Unrecognized option: --bye", fn ->
+      parse(spec, ["--bye", "hello"])
+    end
 
     spec = [name: "tool", options: [[name: "hi", required: true]]]
-    #assert_raise RuntimeError, "Missing required option: --hi", fn ->
-      #parse(spec, [])
-    #end
-    #assert_raise RuntimeError, "Missing required option: --hi", fn ->
-      #parse(spec, ["hello"])
-    #end
-    #assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
-      #parse(spec, ["--hi"])
-    #end
+    assert_raise RuntimeError, "Missing required option: --hi", fn ->
+      parse(spec, [])
+    end
+    assert_raise RuntimeError, "Missing required option: --hi", fn ->
+      parse(spec, ["hello"])
+    end
+    assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
+      parse(spec, ["--hi"])
+    end
     assert parse(spec, ["--hi=hello"]) == {:ok, %Cmd{
       name: "tool", options: [hi: "hello"], arguments: [], subcmd: nil
     }}
 
     spec = [name: "tool", options: [[name: "hi", valtype: :integer]]]
-    #assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
-      #parse(spec, ["--hi"])
-    #end
-    #assert_raise RuntimeError, "Bad option value for --hi: hello", fn ->
-      #parse(spec, ["--hi=hello"])
-    #end
+    assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
+      parse(spec, ["--hi"])
+    end
+    assert_raise RuntimeError, "Bad option value for --hi: hello", fn ->
+      parse(spec, ["--hi=hello"])
+    end
     assert parse(spec, ["--hi", "13"]) == {:ok, %Cmd{
       name: "tool", options: [hi: 13], arguments: [], subcmd: nil
     }}
 
     spec = [name: "tool", options: [[name: "hi", valtype: :boolean]]]
-    #assert_raise RuntimeError, "Bad option value for --hi: hello", fn ->
-      #parse(spec, ["--hi=hello"])
-    #end
+    assert_raise RuntimeError, "Bad option value for --hi: hello", fn ->
+      parse(spec, ["--hi=hello"])
+    end
     assert parse(spec, ["--hi"]) == {:ok, %Cmd{
       name: "tool", options: [hi: true], arguments: [], subcmd: nil
     }}
@@ -175,12 +189,12 @@ defmodule CommandoTest.ParseTest do
       name: "tool", options: [mars: "13"], arguments: [], subcmd: nil
     }}
     msg = "Error trying to overwrite the value for option --mars"
-    #assert_raise RuntimeError, msg, fn ->
-      #parse(spec, ["--mars", "hi", "--mars=bye"])
-    #end
-    #assert_raise RuntimeError, msg, fn ->
-      #parse(spec, ["--mars=hi", "--earth=1", "--mars", "bye"])
-    #end
+    assert_raise RuntimeError, msg, fn ->
+      parse(spec, ["--mars", "hi", "--mars=bye"])
+    end
+    assert_raise RuntimeError, msg, fn ->
+      parse(spec, ["--mars=hi", "--earth=1", "--mars", "bye"])
+    end
   end
 
 
@@ -194,12 +208,12 @@ defmodule CommandoTest.ParseTest do
       [short: "o", valtype: :string, required: true],
     ]]
 
-    #assert_raise RuntimeError, "Missing required argument: <path>", fn ->
-      #parse(spec, ["-o", "1"])
-    #end
-    #assert_raise RuntimeError, "Missing required option: -o", fn ->
-      #parse(spec, ["foo"])
-    #end
+    assert_raise RuntimeError, "Missing required argument: <path>", fn ->
+      parse(spec, ["-o", "1"])
+    end
+    assert_raise RuntimeError, "Missing required option: -o", fn ->
+      parse(spec, ["foo"])
+    end
     assert parse(spec, ["-o", "home", "path", "port"]) == {:ok, %Cmd{
       name: "tool", options: [o: "home"], arguments: ["path", "port"], subcmd: nil
     }}
@@ -218,15 +232,15 @@ defmodule CommandoTest.ParseTest do
       ],
     ]
 
-    #assert_raise RuntimeError, "Missing command", fn ->
-      #parse(spec, [])
-    #end
-    #assert_raise RuntimeError, "Unrecognized command: hello", fn ->
-      #parse(spec, ["--log", "-v", ".", "hello"]) |> IO.inspect
-    #end
-    #assert_raise RuntimeError, "Missing required option: --opt-b", fn ->
-      #parse(spec, ["--log", "-v", ".", "cmda"])
-    #end
+    assert_raise RuntimeError, "Missing command", fn ->
+      parse(spec, [])
+    end
+    assert_raise RuntimeError, "Unrecognized command: hello", fn ->
+      parse(spec, ["--log", "-v", ".", "hello"]) |> IO.inspect
+    end
+    assert_raise RuntimeError, "Missing required option: --opt-b", fn ->
+      parse(spec, ["--log", "-v", ".", "cmda"])
+    end
 
     assert parse(spec, ["--log", "-v", ".", "cmda", "--opt-b=0"]) == {:ok, %Cmd{
       name: "tool", options: [log: true, v: "."], arguments: nil, subcmd: %Cmd{
@@ -234,13 +248,13 @@ defmodule CommandoTest.ParseTest do
       }
     }}
 
-    #assert_raise RuntimeError, "Unrecognized option: --opt-b", fn ->
-      #parse(spec, ["cmdb", "--opt-b=0"])
-    #end
+    assert_raise RuntimeError, "Unrecognized option: --opt-b", fn ->
+      parse(spec, ["cmdb", "--opt-b=0"])
+    end
 
-    #assert_raise RuntimeError, "Missing required argument: <arg>", fn ->
-      #parse(spec, ["cmdb"])
-    #end
+    assert_raise RuntimeError, "Missing required argument: <arg>", fn ->
+      parse(spec, ["cmdb"])
+    end
 
     assert parse(spec, ["cmdb", "hello"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: nil, subcmd: %Cmd{
@@ -333,9 +347,9 @@ defmodule CommandoTest.ParseTest do
   end
 
 
-  defp parse(spec, args) do
+  defp parse(spec, args, config \\ [on_error: :raise]) do
     {:ok, spec} = Commando.new(spec)
-    Commando.parse(args, spec)
+    Commando.parse(args, spec, config)
   end
 
   defp run_test_cmd(args) do

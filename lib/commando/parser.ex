@@ -1,20 +1,22 @@
 defmodule Commando.Parser do
   @moduledoc false
 
-  #alias Commando.Util
-
+  alias Commando.Util
 
   def parse(args, spec, config) do
     try do
       {:ok, do_parse(args, spec, config)}
     catch
-      :throw, {:parse_error, {:error, :missing_cmd}=reason} ->
+      :throw, {:parse_error, {:error, :missing_cmd=reason}} ->
         if config[:exec_help] and (has_help_cmd(spec) or has_help_opt(spec)) do
           IO.puts Commando.help(spec)
           halt(config, 2)
         else
           process_error(reason, config)
         end
+
+      :throw, {:parse_error, [first|_]} ->
+        process_error(first, config)
 
       :throw, {:parse_error, reason} ->
         process_error(reason, config)
@@ -24,6 +26,7 @@ defmodule Commando.Parser do
   defp process_error(reason, config) do
     case config[:format_errors] do
       :return -> {:error, reason}
+      :raise -> raise RuntimeError, message: format_error(reason)
       :report ->
         IO.puts format_error(reason)
         halt(config, 1)
@@ -31,7 +34,36 @@ defmodule Commando.Parser do
   end
 
   defp format_error(reason) do
-    IO.inspect reason
+    case reason do
+      {:bad_opt, name} ->
+        "Unrecognized option: #{opt_name_to_bin(name)}"
+
+      {:missing_opt, name} ->
+        "Missing required option: #{opt_name_to_bin(name)}"
+
+      {:missing_opt_arg, name} ->
+        "Missing argument for option: #{opt_name_to_bin(name)}"
+
+      {:bad_opt_value, {name, val}} ->
+        "Bad option value for #{opt_name_to_bin(name)}: #{val}"
+
+      {:duplicate_opt, name} ->
+        "Error trying to overwrite the value for option #{opt_name_to_bin(name)}"
+
+      {:bad_arg, name} ->
+        "Unexpected argument: #{name}"
+
+      {:missing_arg, name} ->
+        "Missing required argument: <#{name}>"
+
+      :missing_cmd ->
+        "Missing command"
+
+      {:bad_cmd, name} ->
+        "Unrecognized command: #{name}"
+
+      _ -> inspect(reason)
+    end
   end
 
   ###
@@ -150,19 +182,15 @@ defmodule Commando.Parser do
     end)
 
     Enum.map(invalid, fn {name, val} ->
-      #formatted_name = opt_name_to_bin(name)
       cond do
         !option_set[name] ->
-          {:error, {:bad_option, name}}
-          #throw parse_error("Unrecognized option: #{formatted_name}")
+          {:bad_opt, name}
 
         spec[:valtype] != :boolean and val in [false, true] ->
-          {:error, {:missing_arg, name}}
-          #throw parse_error("Missing argument for option: #{formatted_name}")
+          {:missing_opt_arg, name}
 
         true ->
-          {:error, {:bad_value, {name, val}}}
-          #throw parse_error("Bad option value for #{formatted_name}: #{val}")
+          {:bad_opt_value, {name, val}}
       end
     end)
   end
@@ -175,9 +203,7 @@ defmodule Commando.Parser do
 
     Enum.reduce(opts, {[], []}, fn {name, _}=opt, {good, bad} ->
       if !option_set[name] do
-        bad = bad ++ [bad_option: name]
-        #throw {:error, {:bad_option, name}}
-        #throw parse_error("Unrecognized option: #{opt_name_to_bin(name)}")
+        bad = bad ++ [{:bad_opt, name}]
       else
         good = good ++ [opt]
       end
@@ -193,18 +219,15 @@ defmodule Commando.Parser do
       case Keyword.get_values(opts, opt_name) do
         [] ->
           if opt_spec[:required] do
-            bad = bad ++ [missing_option: opt_name]
-            #raise RuntimeError, message: "Missing required option: #{formatted_name}"
+            bad = bad ++ [missing_opt: opt_name]
           end
 
         values ->
           case opt_spec[:multival] do
             :error ->
               if not match?([_], values) do
-                bad = bad ++ [duplicate_option: opt_name]
+                bad = bad ++ [duplicate_opt: opt_name]
                 opts = Keyword.delete(opts, opt_name)
-                #msg = "Error trying to overwrite the value for option #{formatted_name}"
-                #raise RuntimeError, message: msg
               end
 
             _ -> nil
@@ -255,18 +278,15 @@ defmodule Commando.Parser do
     case check_argument_count(spec, args) do
       {:extra, index} ->
         {:error, {:bad_arg, Enum.at(args, index)}}
-        #raise RuntimeError, message: "Unexpected argument: #{Enum.at(args, index)}"
 
       {:missing, index} ->
         cond do
           arguments=spec[:arguments] ->
             name = Enum.at(arguments, index)[:name]
             {:error, {:missing_arg, name}}
-            #raise RuntimeError, message: "Missing required argument: <#{name}>"
 
           spec[:commands] ->
             {:error, :missing_cmd}
-            #raise RuntimeError, message: "Missing command"
         end
 
       {:add, val} ->
@@ -284,7 +304,6 @@ defmodule Commando.Parser do
       {:ok, do_parse(rest_args, cmd_spec, config)}
     else
       {:error, {:bad_cmd, arg}}
-      #raise RuntimeError, message: "Unrecognized command: #{arg}"
     end
   end
 
@@ -312,14 +331,14 @@ defmodule Commando.Parser do
   defp opt_name_to_atom(opt),
     do: binary_to_atom(opt[:name] || opt[:short])
 
-  #defp opt_name_to_bin(name) do
-    #opt_name = Util.name_to_opt(atom_to_binary(name))
-    #if byte_size(opt_name) > 1 do
-      #"--" <> opt_name
-    #else
-      #"-" <> opt_name
-    #end
-  #end
+  defp opt_name_to_bin(name) do
+    opt_name = Util.name_to_opt(atom_to_binary(name))
+    if byte_size(opt_name) > 1 do
+      "--" <> opt_name
+    else
+      "-" <> opt_name
+    end
+  end
 
   ###
 

@@ -3,7 +3,7 @@ defmodule Commando.Util do
 
   @config_default %{
     halt: true,
-    report_errors: :report,
+    format_errors: :report,
     exec_version: true,
     exec_help: true,
   }
@@ -21,7 +21,7 @@ defmodule Commando.Util do
       {:halt, val} when val in [true, :exit] ->
         Map.put(config, :halt, val)
 
-      {:on_error, val} when val in [:report, :return] ->
+      {:on_error, val} when val in [:report, :return, :raise] ->
         Map.put(config, :format_errors, val)
 
       #{:on_error, {f, _state}=handler} when is_function(f, 2) ->
