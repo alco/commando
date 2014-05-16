@@ -3,20 +3,25 @@ defmodule CommandoTest.ErrorsTest do
 
   test "missing fields" do
     msg = "Missing :name option for the command"
-    assert Commando.new([]) == {:error, msg}
+    assert_raise ArgumentError, msg, fn ->
+      Commando.new([])
+    end
   end
 
   test "mixing arguments and commands" do
     msg = "Options :commands and :arguments are mutually exclusive"
-    assert Commando.new(name: "tool", arguments: [], commands: [])
-           == {:error, msg}
+    assert_raise ArgumentError, msg, fn ->
+      Commando.new(name: "tool", arguments: [], commands: [])
+    end
   end
 
   test "required and optional arguments" do
     msg = "Required arguments cannot follow optional ones"
-    assert Commando.new(name: "tool", arguments: [
-      [optional: true],
-      [],
-    ]) == {:error, msg}
+    assert_raise ArgumentError, msg, fn ->
+      Commando.new(name: "tool", arguments: [
+        [optional: true],
+        [],
+      ])
+    end
   end
 end

@@ -10,7 +10,8 @@ defmodule Commando do
     try do
       {:ok, Commando.Definition.compile(spec)}
     catch
-      :throw, {:config_error, msg} -> {:error, msg}
+      :throw, {:config_error, msg} ->
+        raise ArgumentError, message: msg
     end
   end
 
@@ -18,37 +19,25 @@ defmodule Commando do
   @doc """
   Parse command-line arguments according to the spec.
   """
-  def parse(spec),
-    do: parse(spec, [])
+  def parse(spec) when is_map(spec),
+    do: parse(System.argv, spec, [])
 
-  def parse(spec, opts),
-    do: parse(spec, opts, nil)
+  def parse(args, spec) when is_list(args) and is_map(spec),
+    do: parse(args, spec, [])
 
-  def parse(spec, opts, cont) do
+  def parse(spec, opts) when is_map(spec) and is_list(opts),
+    do: parse(System.argv, spec, opts)
+
+  def parse(args, spec, opts)
+    when is_list(args) and is_map(spec) and is_list(opts)
+  do
     try do
-      {spec, args} = process_config(spec, opts)
-      Commando.Parser.parse(spec, args, cont)
+      config = Util.compile_config(opts)
+      Commando.Parser.parse(args, spec, config)
     catch
       :throw, {:config_error, msg} ->
         raise ArgumentError, message: msg
     end
-  end
-
-
-  defp process_config(spec, opts) do
-    valid_opts = Enum.reduce(opts, [], fn
-      {:args, args}=opt, acc when is_list(args) ->
-        [opt|acc]
-
-      {:config, config}, acc when is_list(config) ->
-        spec = Util.compile_config(spec, config)
-        [{:spec, spec}|acc]
-
-      opt, _ -> Util.config_error("Bad config parameter: #{inspect opt}")
-    end)
-    spec = valid_opts[:spec] || spec
-    args = valid_opts[:args] || System.argv
-    {spec, args}
   end
 
 
@@ -71,12 +60,14 @@ defmodule Commando do
   end
 
   def usage(spec, cmd) when is_binary(cmd) do
-    if cmd_spec = command_exists?(spec, cmd) do
+    if cmd_spec=Util.command_exists?(spec, cmd) do
       Map.merge(cmd_spec, %{
         prefix: Enum.join([spec[:prefix], spec[:name]], " "),
         list_options: spec[:list_options],
       })
       |> usage()
+    else
+      raise ArgumentError, message: "Unrecognized command: #{cmd}"
     end
   end
 
@@ -146,12 +137,14 @@ defmodule Commando do
   end
 
   def help(%{}=spec, cmd) do
-    if cmd_spec=command_exists?(spec, cmd) do
+    if cmd_spec=Util.command_exists?(spec, cmd) do
       Map.merge(cmd_spec, %{
         prefix: Enum.join([spec[:prefix], spec[:name]], " "),
         list_options: spec[:list_options],
       })
       |> help()
+    else
+      raise ArgumentError, message: "Unrecognized command: #{cmd}"
     end
   end
 
@@ -303,16 +296,6 @@ defmodule Commando do
     case Regex.run(~r/\.(?:  ?[A-Z]|\n|$)/, str, [return: :index]) do
       [{pos, _}] -> elem(String.split_at(str, pos), 0)
       nil        -> str
-    end
-  end
-
-  ###
-
-  defp command_exists?(spec, name) do
-    if cmd_spec=Enum.find(spec[:commands], &( &1[:name] == name )) do
-      cmd_spec
-    else
-      raise ArgumentError, message: "Unrecognized command: #{name}"
     end
   end
 end
