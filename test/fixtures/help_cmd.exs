@@ -18,8 +18,7 @@ defmodule HelpCommand do
         ]],
       ],
     ]
-    {:ok, cmd} = Commando.new(spec)
-    Commando.parse(cmd)
+    Commando.new(spec) |> Commando.parse()
   end
 end
 

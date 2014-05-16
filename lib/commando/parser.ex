@@ -26,43 +26,10 @@ defmodule Commando.Parser do
   defp process_error(reason, config) do
     case config[:format_errors] do
       :return -> {:error, reason}
-      :raise -> raise RuntimeError, message: format_error(reason)
+      :raise -> raise RuntimeError, message: Util.format_error(reason)
       :report ->
-        IO.puts format_error(reason)
+        IO.puts Util.format_error(reason)
         halt(config, 1)
-    end
-  end
-
-  defp format_error(reason) do
-    case reason do
-      {:bad_opt, name} ->
-        "Unrecognized option: #{opt_name_to_bin(name)}"
-
-      {:missing_opt, name} ->
-        "Missing required option: #{opt_name_to_bin(name)}"
-
-      {:missing_opt_arg, name} ->
-        "Missing argument for option: #{opt_name_to_bin(name)}"
-
-      {:bad_opt_value, {name, val}} ->
-        "Bad option value for #{opt_name_to_bin(name)}: #{val}"
-
-      {:duplicate_opt, name} ->
-        "Error trying to overwrite the value for option #{opt_name_to_bin(name)}"
-
-      {:bad_arg, name} ->
-        "Unexpected argument: #{name}"
-
-      {:missing_arg, name} ->
-        "Missing required argument: <#{name}>"
-
-      :missing_cmd ->
-        "Missing command"
-
-      {:bad_cmd, name} ->
-        "Unrecognized command: #{name}"
-
-      _ -> inspect(reason)
     end
   end
 
@@ -330,15 +297,6 @@ defmodule Commando.Parser do
 
   defp opt_name_to_atom(opt),
     do: binary_to_atom(opt[:name] || opt[:short])
-
-  defp opt_name_to_bin(name) do
-    opt_name = Util.name_to_opt(atom_to_binary(name))
-    if byte_size(opt_name) > 1 do
-      "--" <> opt_name
-    else
-      "-" <> opt_name
-    end
-  end
 
   ###
 

@@ -1,5 +1,5 @@
-Commando example
-================
+Commando examples
+=================
 
 ## curlite
 
@@ -23,3 +23,7 @@ Run `mix compile` in the project root, then invoke the task with
 ```
 mix faketask
 ```
+
+## err
+
+Very basic program showing how to handle errors manually.

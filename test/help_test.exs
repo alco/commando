@@ -276,12 +276,10 @@ defmodule CommandoTest.HelpTest do
   end
 
   defp help(opts, cmd \\ nil) do
-    {:ok, spec} = Commando.new(opts)
-    Commando.help(spec, cmd)
+    Commando.new(opts) |> Commando.help(cmd)
   end
 
   defp help_args(args) do
-    {:ok, spec} = Commando.new([name: "tool", arguments: args])
-    Commando.help(spec)
+    Commando.new([name: "tool", arguments: args]) |> Commando.help()
   end
 end

@@ -128,12 +128,10 @@ defmodule CommandoTest.UsageTest do
   end
 
   defp usage(opts, cmd \\ nil) do
-    {:ok, spec} = Commando.new(opts)
-    Commando.usage(spec, cmd) |> String.rstrip
+    Commando.new(opts) |> Commando.usage(cmd) |> String.rstrip
   end
 
   defp usage_args(args) do
-    {:ok, spec} = Commando.new([name: "tool", arguments: args])
-    Commando.usage(spec)
+    Commando.new([name: "tool", arguments: args]) |> Commando.usage()
   end
 end

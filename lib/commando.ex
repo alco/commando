@@ -8,7 +8,7 @@ defmodule Commando do
   """
   def new(spec) do
     try do
-      {:ok, Commando.Definition.compile(spec)}
+      Commando.Definition.compile(spec)
     catch
       :throw, {:config_error, msg} ->
         raise ArgumentError, message: msg
@@ -149,6 +149,12 @@ defmodule Commando do
       raise ArgumentError, message: "Unrecognized command: #{cmd}"
     end
   end
+
+
+  @doc """
+  Format errors returned from the `parse` function.
+  """
+  def format_error(err), do: Util.format_error(err)
 
   ###
 

@@ -55,8 +55,7 @@ defmodule Curlite do
 
   """
 
-  {:ok, spec} = Commando.new(spec)
-  @cmd_spec spec
+  @cmd_spec Commando.new(spec)
 
   def run() do
     # Commando.parse parses System.argv by default

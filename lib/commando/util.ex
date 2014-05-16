@@ -55,10 +55,6 @@ defmodule Commando.Util do
 
   ###
 
-  def name_to_opt(name), do: String.replace(name, "_", "-")
-
-  ###
-
   def config_error(msg) do
     throw {:config_error, msg}
   end
@@ -70,4 +66,50 @@ defmodule Commando.Util do
   end
 
   def command_if_exists(_, _), do: nil
+
+  ###
+
+  def format_error(reason) do
+    case reason do
+      {:bad_opt, name} ->
+        "Unrecognized option: #{opt_name_to_bin(name)}"
+
+      {:missing_opt, name} ->
+        "Missing required option: #{opt_name_to_bin(name)}"
+
+      {:missing_opt_arg, name} ->
+        "Missing argument for option: #{opt_name_to_bin(name)}"
+
+      {:bad_opt_value, {name, val}} ->
+        "Bad option value for #{opt_name_to_bin(name)}: #{val}"
+
+      {:duplicate_opt, name} ->
+        "Error trying to overwrite the value for option #{opt_name_to_bin(name)}"
+
+      {:bad_arg, name} ->
+        "Unexpected argument: #{name}"
+
+      {:missing_arg, name} ->
+        "Missing required argument: <#{name}>"
+
+      :missing_cmd ->
+        "Missing command"
+
+      {:bad_cmd, name} ->
+        "Unrecognized command: #{name}"
+
+      _ -> inspect(reason)
+    end
+  end
+
+  defp opt_name_to_bin(name) do
+    opt_name = name_to_opt(atom_to_binary(name))
+    if byte_size(opt_name) > 1 do
+      "--" <> opt_name
+    else
+      "-" <> opt_name
+    end
+  end
+
+  def name_to_opt(name), do: String.replace(name, "_", "-")
 end
