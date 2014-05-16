@@ -59,16 +59,15 @@ defmodule Curlite do
   @cmd_spec spec
 
   def run() do
-    config = [autoexec: true, format_errors: true]
-
     # Commando.parse parses System.argv by default
-    %Commando.Cmd{
+    {:ok, %Commando.Cmd{
       options: opts,
       arguments: [addr],
-    } = safe_exec(fn -> Commando.parse(@cmd_spec, config: config) end)
+    }} = Commando.parse(@cmd_spec)
 
     process_command(opts, addr)
   end
+
 
   defp process_command(opts, addr) do
     IO.puts "Processing options"

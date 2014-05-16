@@ -65,9 +65,9 @@ defmodule Commando.Util do
 
   ###
 
-  def command_exists?(spec, name) do
-    if cmd_spec=Enum.find(spec[:commands], &( &1[:name] == name )) do
-      cmd_spec
-    end
+  def command_if_exists(%{commands: commands}, name) when is_list(commands) do
+    Enum.find(commands, &( &1[:name] == name ))
   end
+
+  def command_if_exists(_, _), do: nil
 end

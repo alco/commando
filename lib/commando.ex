@@ -32,7 +32,9 @@ defmodule Commando do
     when is_list(args) and is_map(spec) and is_list(opts)
   do
     try do
-      config = Util.compile_config(opts)
+      config =
+        Util.compile_config(opts)
+        |> Map.put(:name, spec[:name])
       Commando.Parser.parse(args, spec, config)
     catch
       :throw, {:config_error, msg} ->
@@ -60,7 +62,7 @@ defmodule Commando do
   end
 
   def usage(spec, cmd) when is_binary(cmd) do
-    if cmd_spec=Util.command_exists?(spec, cmd) do
+    if cmd_spec=Util.command_if_exists(spec, cmd) do
       Map.merge(cmd_spec, %{
         prefix: Enum.join([spec[:prefix], spec[:name]], " "),
         list_options: spec[:list_options],
@@ -137,7 +139,7 @@ defmodule Commando do
   end
 
   def help(%{}=spec, cmd) do
-    if cmd_spec=Util.command_exists?(spec, cmd) do
+    if cmd_spec=Util.command_if_exists(spec, cmd) do
       Map.merge(cmd_spec, %{
         prefix: Enum.join([spec[:prefix], spec[:name]], " "),
         list_options: spec[:list_options],
