@@ -241,7 +241,7 @@ defmodule Commando.Parser do
     # Add default values and accumulate repeated options
     Enum.reduce(spec[:options], opts, fn opt_spec, opts ->
       opt_name = opt_name_to_atom(opt_spec)
-      if default=opt_spec[:default] && not Keyword.has_key?(opts, opt_name) do
+      if (default=opt_spec[:default]) && not Keyword.has_key?(opts, opt_name) do
         opts = opts ++ [{opt_name, default}]
       end
       if opt_spec[:multival] == :accumulate do

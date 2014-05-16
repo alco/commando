@@ -126,6 +126,23 @@ defmodule CommandoTest.ParseTest do
     }}
   end
 
+  test "defaults for options" do
+    spec = [name: "tool", arguments: [[optional: true]], options: [
+      [name: "host", short: "h", default: "localhost"],
+      [name: "port", short: "p", valtype: :integer, default: 1234],
+    ]]
+
+    assert parse(spec, []) == {:ok, %Cmd{
+      name: "tool", options: [host: "localhost", port: 1234], arguments: [], subcmd: nil
+    }}
+    assert parse(spec, ["--port=12"]) == {:ok, %Cmd{
+      name: "tool", options: [port: 12, host: "localhost"], arguments: [], subcmd: nil
+    }}
+    assert parse(spec, ["-h", "..."]) == {:ok, %Cmd{
+      name: "tool", options: [host: "...", port: 1234], arguments: [], subcmd: nil
+    }}
+  end
+
   test ":overwrite modifier for options" do
     spec = [name: "tool", arguments: [[optional: true]], options: [
       [name: "mercury", valtype: :boolean, multival: :overwrite],
