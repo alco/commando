@@ -104,11 +104,10 @@ defmodule Mix.Tasks.Faketask do
   @cmd_spec spec
 
   def run(args) do
-    config = [autoexec: true, format_errors: true]
-    %Commando.Cmd{
+    {:ok, %Commando.Cmd{
       options: opts,
       subcmd: cmd,
-    } = safe_exec(fn -> Commando.parse(@cmd_spec, config: config, args: args) end)
+    }} = Commando.parse(args, @cmd_spec)
 
     # At this point cmd != nil and opts is a list.
     IO.puts "Global options:"
@@ -147,16 +146,5 @@ defmodule Mix.Tasks.Faketask do
 
     IO.puts "just kidding"
     IO.puts "Done serving"
-  end
-
-
-  defp safe_exec(f) do
-    try do
-      f.()
-    rescue
-      e in [RuntimeError] ->
-        IO.puts e.message
-        System.halt(1)
-    end
   end
 end

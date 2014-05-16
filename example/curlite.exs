@@ -75,7 +75,7 @@ defmodule Curlite do
     default_opts = %{
       method: :get,
     }
-    opts = safe_exec(fn -> Enum.reduce(opts, default_opts, &process_option/2) end)
+    opts = Enum.reduce(opts, default_opts, &process_option/2)
     IO.puts "===done"
 
     IO.puts ""
@@ -101,16 +101,6 @@ defmodule Curlite do
       IO.puts "Fake-Header: fake_token"
       IO.puts "Server: remotely located"
       IO.puts "Date: today"
-    end
-  end
-
-  defp safe_exec(f) do
-    try do
-      f.()
-    rescue
-      e in [RuntimeError] ->
-        IO.puts e.message
-        System.halt(1)
     end
   end
 
