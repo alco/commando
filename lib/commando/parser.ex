@@ -7,7 +7,7 @@ defmodule Commando.Parser do
     try do
       {:ok, do_parse(args, spec, config)}
     catch
-      :throw, {:parse_error, {:error, :missing_cmd=reason}} ->
+      :throw, {:parse_error, :missing_cmd=reason} ->
         if config[:exec_help] and (has_help_cmd(spec) or has_help_opt(spec)) do
           IO.puts Commando.help(spec)
           halt(config, 2)

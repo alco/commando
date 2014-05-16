@@ -278,13 +278,13 @@ defmodule CommandoTest.ParseTest do
       ],
     ]
 
-    assert parse(spec, ["help"]) == {:ok, %Cmd {
+    assert parse(spec, ["help"], autoexec: false) == {:ok, %Cmd {
       name: "tool", options: [], arguments: nil, subcmd: %Cmd {
         name: "help", options: [], arguments: [], subcmd: nil
       }
     }}
 
-    assert parse(spec, ["help", "bad"]) == {:ok, %Cmd {
+    assert parse(spec, ["help", "bad"], autoexec: false) == {:ok, %Cmd {
       name: "tool", options: [], arguments: nil, subcmd: %Cmd {
         name: "help", options: [], arguments: ["bad"], subcmd: nil
       }

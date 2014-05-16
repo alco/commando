@@ -19,7 +19,7 @@ defmodule HelpCommand do
       ],
     ]
     {:ok, cmd} = Commando.new(spec)
-    Commando.parse(cmd, config: [autoexec: :help])
+    Commando.parse(cmd)
   end
 end
 
