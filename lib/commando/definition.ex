@@ -120,9 +120,10 @@ defmodule Commando.Definition do
   defp process_commands(spec, cmd),
     do: Enum.map(cmd, &(compile_command(&1) |> validate_command(spec)))
 
-  defp process_arguments(arg),
-    do: (Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
-         |> validate_arguments())
+  defp process_arguments(arg) do
+    Enum.map(arg, &(compile_argument(&1) |> validate_argument()))
+    |> validate_arguments()
+  end
 
   ###
 
@@ -253,11 +254,16 @@ defmodule Commando.Definition do
   end
 
   defp validate_arguments(args) do
-    Enum.reduce(args, false, fn arg, seen_optional? ->
-      if arg[:required] && seen_optional? do
-        config_error("Required arguments cannot follow optional ones")
+    Enum.reduce(args, {%{}, false}, fn arg, {set, seen_glob?} ->
+      if not arg[:required] and seen_glob? do
+        config_error("Optional arguments cannot follow varargs")
       end
-      seen_optional? || !arg[:required]
+      name = arg[:name]
+      if set[name] do
+        config_error("Duplicate argument name: #{name}")
+      end
+
+      {Map.put(set, name, true), seen_glob? or false} #arg[:nargs] == :* or arg[:nargs] == :+
     end)
     args
   end

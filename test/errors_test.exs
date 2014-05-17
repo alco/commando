@@ -16,7 +16,7 @@ defmodule CommandoTest.ErrorsTest do
   end
 
   test "required and optional arguments" do
-    msg = "Required arguments cannot follow optional ones"
+    msg = "Duplicate argument name: arg"
     assert_raise ArgumentError, msg, fn ->
       Commando.new(name: "tool", arguments: [
         [required: false],
