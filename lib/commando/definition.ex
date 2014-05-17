@@ -18,7 +18,8 @@ defmodule Commando.Definition do
   }
 
   @arg_defaults %{
-    optional: false,
+    valtype: :string,
+    required: true,
     help: "",
   }
 
@@ -49,7 +50,7 @@ defmodule Commando.Definition do
     arguments: [
       Map.merge(@arg_defaults, %{
         name: "command",
-        optional: true,
+        required: false,
         help: "The command to describe. When omitted, help for the tool itself is printed."
       })
     ],
@@ -136,33 +137,14 @@ defmodule Commando.Definition do
 
   defp compile_option([param|rest], opt) do
     opt = case param do
-      {:name, <<_, _, _::binary>>=n} ->
-        Map.put(opt, :name, n)
-
       {:short, <<_>>=s} ->
         Map.put(opt, :short, s)
 
       {:argname, n} when is_binary(n) ->
         Map.put(opt, :argname, n)
 
-      {:valtype, t} when t in [:boolean, :integer, :float, :string] ->
-        %{opt | valtype: t}
-
-      {:default, val} ->
-              #when t in [:boolean, :integer, :float, :string],
-        Map.put(opt, :default, val)
-
-      {:multival, kind} when kind in [:overwrite, :keep, :accumulate, :error] ->
-        Map.put(opt, :multival, kind)
-
-      {:required, r} when r in [true, false] ->
-        %{opt | required: r}
-
-      {:help, h} when is_binary(h) ->
-        %{opt | help: h}
-
-      opt ->
-        config_error("Unrecognized option parameter #{inspect opt}")
+      other ->
+        compile_argument([other], opt)
     end
     compile_option(rest, opt)
   end
@@ -209,17 +191,23 @@ defmodule Commando.Definition do
       {:name, n} when is_binary(n) ->
         Map.put(arg, :name, n)
 
+      {:valtype, t} when t in [:boolean, :integer, :float, :string] ->
+        %{arg | valtype: t}
+
+      {:multival, kind} when kind in [:overwrite, :keep, :accumulate, :error] ->
+        Map.put(arg, :multival, kind)
+
+      {:required, r} when r in [true, false] ->
+        %{arg | required: r}
+
       {:help, h} when is_binary(h) ->
         %{arg | help: h}
-
-      {:optional, o} when o in [true, false] ->
-        %{arg | optional: o}
 
       {:default, val} ->
         Map.put(arg, :default, val)
 
       opt ->
-        config_error("Unrecognized argument parameter #{inspect opt}")
+        config_error("Unrecognized parameter #{inspect opt}")
     end
     compile_argument(rest, arg)
   end
@@ -257,18 +245,18 @@ defmodule Commando.Definition do
     if arg[:name] == nil do
       arg = Map.put(arg, :name, "arg")
     end
-    if arg[:default] && !arg[:optional] do
-      config_error("Argument parameter :default implies optional=true")
+    if arg[:default] && arg[:required] do
+      config_error("Argument parameter :default implies required=false")
     end
     arg
   end
 
   defp validate_arguments(args) do
     Enum.reduce(args, false, fn arg, seen_optional? ->
-      if !arg[:optional] && seen_optional? do
+      if arg[:required] && seen_optional? do
         config_error("Required arguments cannot follow optional ones")
       end
-      seen_optional? || arg[:optional]
+      seen_optional? || !arg[:required]
     end)
     args
   end

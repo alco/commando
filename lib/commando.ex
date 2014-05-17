@@ -279,7 +279,7 @@ defmodule Commando do
     do: (Enum.map(arguments, &format_argument/1) |> Enum.join(" "))
 
 
-  defp format_argument(%{name: name, optional: true}), do: "[<#{name}>]"
+  defp format_argument(%{name: name, required: false}), do: "[<#{name}>]"
   defp format_argument(%{name: name}), do: "<#{name}>"
 
 

@@ -34,7 +34,7 @@ defmodule CommandoTest.ParseTest do
       parse(spec, ["hello"])
     end
 
-    spec = [name: "tool", arguments: [[name: "path", optional: true]]]
+    spec = [name: "tool", arguments: [[name: "path", required: false]]]
     assert parse(spec, []) == {:ok, %Cmd{
       name: "tool", options: [], arguments: [], subcmd: nil
     }}
@@ -53,7 +53,7 @@ defmodule CommandoTest.ParseTest do
       parse(spec, ["hello", "world"])
     end
 
-    spec = [name: "tool", arguments: [[name: "path"], [name: "port", optional: true]]]
+    spec = [name: "tool", arguments: [[name: "path"], [name: "port", required: false]]]
     assert_raise RuntimeError, "Missing required argument: <path>", fn ->
       parse(spec, [])
     end
@@ -127,7 +127,7 @@ defmodule CommandoTest.ParseTest do
   end
 
   test "defaults for options" do
-    spec = [name: "tool", arguments: [[optional: true]], options: [
+    spec = [name: "tool", arguments: [[required: false]], options: [
       [name: "host", short: "h", default: "localhost"],
       [name: "port", short: "p", valtype: :integer, default: 1234],
     ]]
@@ -144,7 +144,7 @@ defmodule CommandoTest.ParseTest do
   end
 
   test ":overwrite modifier for options" do
-    spec = [name: "tool", arguments: [[optional: true]], options: [
+    spec = [name: "tool", arguments: [[required: false]], options: [
       [name: "mercury", valtype: :boolean, multival: :overwrite],
     ]]
 
@@ -163,7 +163,7 @@ defmodule CommandoTest.ParseTest do
   end
 
   test ":keep modifier for options" do
-    spec = [name: "tool", arguments: [[optional: true]], options: [
+    spec = [name: "tool", arguments: [[required: false]], options: [
       [name: "mercury", valtype: :boolean, multival: :overwrite],
       [name: "venus", valtype: :integer, multival: :keep],
     ]]
@@ -180,7 +180,7 @@ defmodule CommandoTest.ParseTest do
   end
 
   test ":accumulate modifier for options" do
-    spec = [name: "tool", arguments: [[optional: true]], options: [
+    spec = [name: "tool", arguments: [[required: false]], options: [
       [name: "venus", valtype: :integer, multival: :keep],
       [name: "earth", valtype: :float, multival: :accumulate],
     ]]
@@ -197,7 +197,7 @@ defmodule CommandoTest.ParseTest do
   end
 
   test ":error modifier for options" do
-    spec = [name: "tool", arguments: [[optional: true]], options: [
+    spec = [name: "tool", arguments: [[required: false]], options: [
       [name: "earth", valtype: :float, multival: :accumulate],
       [name: "mars", valtype: :string, multival: :error],
     ]]
@@ -218,7 +218,7 @@ defmodule CommandoTest.ParseTest do
   test "options and arguments" do
     spec = [name: "tool", arguments: [
       [name: "path"],
-      [name: "port", optional: true]
+      [name: "port", required: false]
     ], options: [
       [name: "earth", valtype: :float],
       [name: "mars", valtype: :string],

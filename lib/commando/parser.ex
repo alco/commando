@@ -337,7 +337,7 @@ defmodule Commando.Parser do
 
   defp check_argument_count(%{arguments: arguments}, args) do
     {required_cnt, optional_cnt} = Enum.reduce(arguments, {0, 0}, fn
-      %{optional: true}, {req_cnt, opt_cnt} -> {req_cnt, opt_cnt+1}
+      %{required: false}, {req_cnt, opt_cnt} -> {req_cnt, opt_cnt+1}
       _, {req_cnt, opt_cnt} -> {req_cnt + 1, opt_cnt}
     end)
     given_cnt = length(args)

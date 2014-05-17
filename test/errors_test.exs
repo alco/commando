@@ -19,7 +19,7 @@ defmodule CommandoTest.ErrorsTest do
     msg = "Required arguments cannot follow optional ones"
     assert_raise ArgumentError, msg, fn ->
       Commando.new(name: "tool", arguments: [
-        [optional: true],
+        [required: false],
         [],
       ])
     end

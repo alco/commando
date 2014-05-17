@@ -14,7 +14,7 @@ defmodule HelpCommand do
           [name: "opt", required: true],
           [name: "foo", short: "f", valtype: :boolean],
         ], arguments: [
-          [optional: true],
+          [required: false],
         ]],
       ],
     ]

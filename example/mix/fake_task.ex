@@ -39,7 +39,7 @@ commands = [
 
   [name: "serve",
    help: "Serve files from the specified directory, recursively.",
-   arguments: [[name: "path", optional: true, default: "."]],
+   arguments: [[name: "path", required: false, default: "."]],
    options: [
      [name: "list", short: "l",
       valtype: :boolean,
