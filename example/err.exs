@@ -1,11 +1,15 @@
 spec = [
   name: "err",
 
-  options: [
-    [name: "req",
-     required: true],
+  help_option: :top_cmd,
 
-    [short: "v"],
+  options: [
+    :version,
+
+    [name: "req",
+     valtype: :integer],
+
+    [short: "o"],
   ],
 
   arguments: [
@@ -15,8 +19,8 @@ spec = [
 
 defmodule Errors do
   @moduledoc """
-  Implementation of custom error formatting and overriding behaviour for help
-  command, --help and --version options.
+  Implementation of custom error formatting and overriding behaviour for --help
+  and --version options.
 
   Example invocations to try:
 
@@ -31,10 +35,19 @@ defmodule Errors do
   @cmd_spec Commando.new(spec)
 
   def run() do
-    case Commando.parse(@cmd_spec, on_error: :return) do
+    case Commando.parse(@cmd_spec, on_error: :return, autoexec: false) do
       {:ok, cmd} ->
         IO.puts "Did successfully parse the invocation:"
         IO.inspect cmd
+
+        # This needs to wait for an update in OptionParser
+        #if cmd.options[:help] do
+          #IO.puts "--> Pretending to print help"
+        #end
+
+        #if cmd.options[:version] do
+          #IO.puts "--> Pretending to print version"
+        #end
 
       {:error, reason} ->
         case reason do

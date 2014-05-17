@@ -113,8 +113,10 @@ defmodule Commando.Definition do
 
   ###
 
-  defp process_options(opt),
-    do: (Enum.map(opt, &(compile_option(&1) |> validate_option())))
+  defp process_options(opt) do
+    Enum.map(opt, &(compile_option(&1) |> validate_option()))
+    |> validate_options()
+  end
 
   defp process_commands(spec, cmd),
     do: Enum.map(cmd, &(compile_command(&1) |> validate_command(spec)))
@@ -278,5 +280,20 @@ defmodule Commando.Definition do
     if spec[:help_option] == :all_cmd, do:
       cmd = Map.update!(cmd, :options, &[@help_opt_spec|&1])
     cmd
+  end
+
+
+  defp validate_options(opts) do
+    Enum.reduce(opts, %{}, fn opt, set ->
+      {name, short} = {opt[:name], opt[:short]}
+      if name && set[name] do
+        config_error("Duplicate option name: #{name}")
+      end
+      if short && set[short] do
+        config_error("Duplicate option name: #{short}")
+      end
+      set |> Map.put(name, true) |> Map.put(short, true)
+    end)
+    opts
   end
 end
