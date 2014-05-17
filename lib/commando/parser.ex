@@ -65,13 +65,12 @@ defmodule Commando.Parser do
     topcmd = %Commando.Cmd{
       name: spec[:name],
       options: opts,
-      arguments: args,
     }
 
     if spec[:commands] do
       case parse_cmd(args, spec, config) do
         {:ok, cmd} ->
-          topcmd = %Cmd{topcmd | subcmd: cmd, arguments: nil}
+          topcmd = %Cmd{topcmd | subcmd: cmd}
           cmd_spec = Enum.find(spec[:commands], fn cmd_spec ->
             cmd_spec.name == cmd.name
           end)
@@ -79,6 +78,8 @@ defmodule Commando.Parser do
 
         {:error, reason} -> throw parse_error(reason)
       end
+    else
+      topcmd = %Cmd{topcmd | arguments: assign_args(args, spec)}
     end
 
     topcmd
@@ -101,7 +102,7 @@ defmodule Commando.Parser do
       if valtype=opt[:valtype], do: kind = [valtype|kind]
 
       case opt[:multival] do
-        :overwrite ->
+        default when default in [nil, :overwrite] ->
           nil
         keep when keep in [:keep, :accumulate, :error] ->
           kind = [:keep|kind]
@@ -136,9 +137,33 @@ defmodule Commando.Parser do
   defp process_args(args, spec) do
     case validate_args(args, spec) do
       {:ok, args} -> args
+
       {:error, reason} ->
         throw parse_error(reason)
     end
+  end
+
+  defp assign_args(args, spec) do
+    {required, optional} =
+      Enum.reduce(List.wrap(spec[:arguments]), {[], []}, fn arg_spec, {required, optional} ->
+        if arg_spec[:required] do
+          required = required ++ [arg_spec]
+        else
+          optional = optional ++ [arg_spec]
+        end
+        {required, optional}
+      end)
+
+    all_specs = required ++ optional
+
+    # FIXME: for required arguments with nargs=+ or nargs=*,
+    # we have to consider leading optional arguments first
+    {map, _} = Enum.reduce(args, {%{}, all_specs}, fn
+      arg, {map, [arg_spec|rest]} ->
+        {Map.put(map, arg_spec.name, arg), rest}
+    end)
+
+    map
   end
 
   ###
@@ -284,10 +309,10 @@ defmodule Commando.Parser do
   do
     halt? = try do
       case args do
-        [arg] ->
-          IO.puts Commando.help(spec, arg)
+        %{"command" => cmd} ->
+          IO.puts Commando.help(spec, cmd)
 
-        null when null in [nil, []] ->
+        %{} ->
           IO.puts Commando.help(spec)
       end
     rescue

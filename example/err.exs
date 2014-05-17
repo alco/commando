@@ -28,7 +28,7 @@ defmodule Errors do
 
       mix run example/err.exs --req hi
 
-      mix run example/err.exs / --req bye
+      mix run example/err.exs / --req 13
 
   """
 

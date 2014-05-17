@@ -14,7 +14,6 @@ defmodule Commando.Definition do
   @opt_defaults %{
     valtype: :string,
     required: false,
-    multival: :overwrite,
     help: "",
   }
 

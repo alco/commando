@@ -138,7 +138,7 @@ defmodule Mix.Tasks.Faketask do
 
   # we are sure that arguments==[path] because we provided a default value
   # for it
-  def serve(%Cmd{arguments: [path]}, %Cmd{options: _global_opts}) do
+  def serve(%Cmd{arguments: %{"path" => path}}, %Cmd{options: _global_opts}) do
     IO.puts "Serving files from directory: #{path}"
     Stream.repeatedly(fn ->
       IO.write "."
