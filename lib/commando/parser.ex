@@ -1,6 +1,7 @@
 defmodule Commando.Parser do
   @moduledoc false
 
+  alias Commando.Cmd
   alias Commando.Util
 
   def parse(args, spec, config) do
@@ -61,23 +62,26 @@ defmodule Commando.Parser do
     opts = process_opts(opts, invalid, spec, config)
     args = process_args(args, spec)
 
-    cmd = if spec[:commands] do
+    topcmd = %Commando.Cmd{
+      name: spec[:name],
+      options: opts,
+      arguments: args,
+    }
+
+    if spec[:commands] do
       case parse_cmd(args, spec, config) do
         {:ok, cmd} ->
-          execute_cmd_if_needed(cmd, spec, config)
-          args = nil
-          cmd
+          topcmd = %Cmd{topcmd | subcmd: cmd, arguments: nil}
+          cmd_spec = Enum.find(spec[:commands], fn cmd_spec ->
+            cmd_spec.name == cmd.name
+          end)
+          execute_cmd_if_needed(topcmd, cmd_spec, spec, config)
 
         {:error, reason} -> throw parse_error(reason)
       end
     end
 
-    %Commando.Cmd{
-      name: spec[:name],
-      options: opts,
-      arguments: args,
-      subcmd: cmd,
-    }
+    topcmd
   end
 
   defp check_opt_error(opts, f) do
@@ -274,7 +278,9 @@ defmodule Commando.Parser do
     end
   end
 
-  defp execute_cmd_if_needed(%{name: "help", arguments: args}, spec, %{exec_help: true}=config) do
+  defp execute_cmd_if_needed(%Cmd{subcmd: %Cmd{name: "help", arguments: args}},
+                                      _cmd_spec, spec, %{exec_help: true}=config)
+  do
     halt? = try do
       case args do
         [arg] ->
@@ -291,7 +297,13 @@ defmodule Commando.Parser do
     if halt?, do: halt(config)
   end
 
-  defp execute_cmd_if_needed(_, _, _), do: nil
+  defp execute_cmd_if_needed(%Cmd{subcmd: %Cmd{}=cmd}=topcmd,
+                                     %{action: f}, _, %{exec_commands: true})
+  do
+    f.(cmd, topcmd)
+  end
+
+  defp execute_cmd_if_needed(_, _, _, _), do: nil
 
   ###
 

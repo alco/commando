@@ -6,6 +6,7 @@ defmodule Commando.Util do
     format_errors: :report,
     exec_version: true,
     exec_help: true,
+    exec_commands: true,
   }
 
   def compile_config(opts),
@@ -35,9 +36,12 @@ defmodule Commando.Util do
 
 
   defp compile_autoexec_param(config, param) do
+    config = Map.merge(config, %{
+      exec_help: false, exec_version: false, exec_commands: false
+    })
     case param do
       flag when flag in [true, false] ->
-        Map.merge(config, %{exec_help: flag, exec_version: flag})
+        Map.merge(config, %{exec_help: flag, exec_version: flag, exec_commands: flag})
 
       :help ->
         Map.put(config, :exec_help, true)
@@ -45,9 +49,13 @@ defmodule Commando.Util do
       :version ->
         Map.put(config, :exec_version, true)
 
+      :commands ->
+        Map.put(config, :exec_commands, true)
+
       list when is_list(list) ->
         Enum.reduce(list, config, fn
-          p, config when p in [:help, :version] -> compile_autoexec_param(config, p)
+          p, config when p in [:help, :version, :commands] ->
+            compile_autoexec_param(config, p)
           other, _ -> config_error("Invalid :autoexec parameter value: #{other}")
         end)
     end

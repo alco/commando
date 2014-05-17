@@ -8,10 +8,7 @@ defmodule Commando.Definition do
   @spec_defaults %{
     prefix: "",
     help: "",
-    exec_help: false,
-    exec_version: false,
     options: [],
-    halt: true,
   }
 
   @opt_defaults %{
@@ -191,6 +188,9 @@ defmodule Commando.Definition do
 
       {:options, opt} when is_list(opt) ->
         Map.put(cmd, :options, process_options(opt))
+
+      {:action, a} when is_function(a, 2) ->
+        Map.put(cmd, :action, a)
 
       opt ->
         config_error("Unrecognized command parameter #{inspect opt}")

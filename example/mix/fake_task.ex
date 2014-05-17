@@ -1,5 +1,22 @@
 # Scroll down for the description in moduledoc
 
+inspect_path_help = """
+  Send the contents of file at PATH in reponse to incoming requests.
+
+  By default, nothing is sent in response, the connection is closed
+  immediately.
+
+  Passing a dash (-) for PATH will read from stdin.
+  """
+
+serve_list_help = """
+  For directory requests, serve HTML with the list of contents of that
+  directory.
+
+  Without this option, "403 Forbidden" is returned for directory
+  requests.
+  """
+
 commands = [
   :help,
 
@@ -8,15 +25,9 @@ commands = [
    options: [
      [name: "reply_file", short: "f",
       argname: "path",
-      help: """
-        Send the contents of file at PATH in reponse to incoming requests.
-
-        By default, nothing is sent in response, the connection is closed
-        immediately.
-
-        Passing a dash (-) for PATH will read from stdin.
-        """],
-   ]],
+      help: inspect_path_help],
+   ],
+   action: &Mix.Tasks.Faketask.inspect/2],
 
   [name: "proxy",
    help: """
@@ -24,7 +35,7 @@ commands = [
      between client and remote server is transmitted without alterations. All
      requests and responses are logged to stdout.
      """,
-  ],
+   action: &Mix.Tasks.Faketask.proxy/2],
 
   [name: "serve",
    help: "Serve files from the specified directory, recursively.",
@@ -32,14 +43,9 @@ commands = [
    options: [
      [name: "list", short: "l",
       valtype: :boolean,
-      help: """
-        For directory requests, serve HTML with the list of contents of that
-        directory.
-
-        Without this option, "403 Forbidden" is returned for directory
-        requests.
-        """],
-   ]],
+      help: serve_list_help],
+   ],
+   action: &Mix.Tasks.Faketask.serve/2],
 ]
 
 spec = [
@@ -102,23 +108,20 @@ defmodule Mix.Tasks.Faketask do
 
   @cmd_spec Commando.new(spec)
 
+  alias Commando.Cmd
+
   def run(args) do
-    {:ok, %Commando.Cmd{
-      options: opts,
-      subcmd: cmd,
-    }} = Commando.parse(args, @cmd_spec)
+    { :ok, %Cmd{options: opts} } = Commando.parse(args, @cmd_spec)
 
     # At this point cmd != nil and opts is a list.
-    IO.puts "Global options:"
+    IO.puts ""
+    IO.puts "Global options were:"
     IO.puts "  host: #{opts[:host]}"
     IO.puts "  port: #{opts[:port]}"
-
-    IO.puts "Executing command '#{cmd.name}'...\n"
-    exec_cmd(cmd)
   end
 
 
-  defp exec_cmd(%{name: "inspect", options: opts}) do
+  def inspect(%Cmd{options: opts}, %Cmd{options: _global_opts}) do
     if path=opts[:reply_file] do
       IO.puts "Will reply with data from file #{path}"
     end
@@ -127,7 +130,7 @@ defmodule Mix.Tasks.Faketask do
   end
 
 
-  defp exec_cmd(%{name: "proxy"}) do
+  def proxy(%Cmd{}, %Cmd{options: _global_opts}) do
     IO.puts "..."
     IO.puts "Done proxying"
   end
@@ -135,7 +138,7 @@ defmodule Mix.Tasks.Faketask do
 
   # we are sure that arguments==[path] because we provided a default value
   # for it
-  defp exec_cmd(%{name: "serve", arguments: [path]}) do
+  def serve(%Cmd{arguments: [path]}, %Cmd{options: _global_opts}) do
     IO.puts "Serving files from directory: #{path}"
     Stream.repeatedly(fn ->
       IO.write "."
