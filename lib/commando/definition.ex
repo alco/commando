@@ -14,12 +14,14 @@ defmodule Commando.Definition do
   @opt_defaults %{
     valtype: :string,
     required: false,
+    multival: :overwrite,
     help: "",
   }
 
   @arg_defaults %{
     valtype: :string,
     required: true,
+    multival: :accumulate,
     help: "",
   }
 

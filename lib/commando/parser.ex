@@ -101,7 +101,7 @@ defmodule Commando.Parser do
       if valtype=opt[:valtype], do: kind = [valtype|kind]
 
       case opt[:multival] do
-        default when default in [nil, :overwrite] ->
+        :overwrite ->
           nil
         keep when keep in [:keep, :accumulate, :error] ->
           kind = [:keep|kind]
@@ -246,6 +246,7 @@ defmodule Commando.Parser do
   end
 
   defp validate_args(args, spec) do
+    # FIXME: check argument types
     case check_argument_count(spec, args) do
       {:extra, index} ->
         {:error, {:bad_arg, Enum.at(args, index)}}
