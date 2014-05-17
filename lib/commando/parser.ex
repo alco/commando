@@ -144,23 +144,56 @@ defmodule Commando.Parser do
   end
 
   defp assign_args(args, spec) do
-    {required, optional} =
-      Enum.reduce(List.wrap(spec[:arguments]), {[], []}, fn arg_spec, {required, optional} ->
+    {required, optional, glob} =
+      Enum.reduce(List.wrap(spec[:arguments]), {[], [], nil}, fn arg_spec, {required, optional, glob} ->
         if arg_spec[:required] do
-          required = required ++ [arg_spec]
+          case arg_spec[:nargs] do
+            :* ->
+              glob = arg_spec
+            :+ ->
+              required = required ++ [arg_spec]
+              glob = arg_spec
+            _ ->
+              required = required ++ [arg_spec]
+          end
         else
           optional = optional ++ [arg_spec]
         end
-        {required, optional}
+        {required, optional, glob}
       end)
 
     all_specs = required ++ optional
 
-    # FIXME: for required arguments with nargs=+ or nargs=*,
-    # we have to consider leading optional arguments first
+    # The order of assigning values to arguments is as follows
+    #
+    #   usage: tool [o1] [o2] r1 r2 r3 [r3...]
+    #
+    #     - r1
+    #     - r2
+    #     - r3
+    #     - o1
+    #     - o2
+    #     - r3...
+    #
+    #   usage: tool [o1] r1 [o2] [r2...]
+    #
+    #     - r1
+    #     - o1
+    #     - o2
+    #     - r2...
+    #
+
+    # FIXME: consider :multival setting for each argument
     {map, _} = Enum.reduce(args, {%{}, all_specs}, fn
       arg, {map, [arg_spec|rest]} ->
-        {Map.put(map, arg_spec.name, arg), rest}
+        if Util.is_glob_arg(arg_spec) do
+          {Map.update(map, arg_spec.name, [], &( &1 ++ [arg] )), rest}
+        else
+          {Map.put(map, arg_spec.name, arg), rest}
+        end
+
+      arg, {map, []} ->
+        {Map.update(map, glob.name, [], &( &1 ++ [arg] )), []}
     end)
 
     map
@@ -286,9 +319,6 @@ defmodule Commando.Parser do
             {:error, :missing_cmd}
         end
 
-      {:add, val} ->
-        {:ok, args ++ [val]}
-
       nil ->
         {:ok, args}
     end
@@ -373,13 +403,6 @@ defmodule Commando.Parser do
 
       given_cnt < required_cnt ->
         {:missing, given_cnt}
-
-      arguments != [] ->
-        # FIXME: half-baked solution
-        default = hd(arguments)[:default]
-        if given_cnt < required_cnt + optional_cnt && default do
-          {:add, default}
-        end
 
       true -> nil
     end

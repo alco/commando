@@ -120,4 +120,10 @@ defmodule Commando.Util do
   end
 
   def name_to_opt(name), do: String.replace(name, "_", "-")
+
+  ##
+
+  def is_glob_arg(arg_spec) do
+    arg_spec[:nargs] == :* or arg_spec[:nargs] == :+
+  end
 end

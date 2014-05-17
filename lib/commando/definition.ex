@@ -58,7 +58,8 @@ defmodule Commando.Definition do
   })
 
 
-  import Commando.Util, only: [config_error: 1]
+  alias Commando.Util
+  import Util, only: [config_error: 1]
 
 
   def compile(spec) do
@@ -254,17 +255,21 @@ defmodule Commando.Definition do
   end
 
   defp validate_arguments(args) do
-    Enum.reduce(args, {%{}, false}, fn arg, {set, seen_glob?} ->
-      if not arg[:required] and seen_glob? do
-        config_error("Optional arguments cannot follow varargs")
-      end
-      name = arg[:name]
-      if set[name] do
-        config_error("Duplicate argument name: #{name}")
-      end
+    {_, seen_glob?, last_arg} =
+      Enum.reduce(args, {%{}, false, nil}, fn arg, {set, seen_glob?, _} ->
+        if seen_glob? do
+          config_error("No arguments can follow the vararg one")
+        end
+        name = arg[:name]
+        if set[name] do
+          config_error("Duplicate argument name: #{name}")
+        end
 
-      {Map.put(set, name, true), seen_glob? or false} #arg[:nargs] == :* or arg[:nargs] == :+
-    end)
+        {Map.put(set, name, true), seen_glob? or Util.is_glob_arg(arg), arg}
+      end)
+    if seen_glob? and not Util.is_glob_arg(last_arg) do
+      config_error("Vararg argument has to be the last one")
+    end
     args
   end
 
