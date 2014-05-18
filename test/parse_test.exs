@@ -68,6 +68,86 @@ defmodule CommandoTest.ParseTest do
     end
   end
 
+  test "vararg" do
+    spec = [name: "tool", arguments: [
+      [name: "o1", required: false],
+      [name: "o2", required: false],
+      [name: "r1"],
+      [name: "r2"],
+      [name: "r3", nargs: :+],
+    ]]
+    assert_raise RuntimeError, "Missing required argument: <r1>", fn ->
+      parse(spec, [])
+    end
+    assert_raise RuntimeError, "Missing required argument: <r2>", fn ->
+      parse(spec, ["a"])
+    end
+    assert_raise RuntimeError, "Missing required argument: <r3>", fn ->
+      parse(spec, ["a", "b"])
+    end
+    assert parse(spec, ["a", "b", "c"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b", "r3" => ["c"]
+      }, subcmd: nil
+    }}
+    assert parse(spec, ["a", "b", "c", "d"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b", "r3" => ["c"], "o1" => "d"
+      }, subcmd: nil
+    }}
+    assert parse(spec, ["a", "b", "c", "d", "e"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b", "r3" => ["c"], "o1" => "d", "o2" => "e"
+      }, subcmd: nil
+    }}
+    assert parse(spec, ["a", "b", "c", "d", "e", "f"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b", "r3" => ["c", "f"], "o1" => "d", "o2" => "e"
+      }, subcmd: nil
+    }}
+  end
+
+  test "vararg star" do
+    spec = [name: "tool", arguments: [
+      [name: "o1", required: false],
+      [name: "o2", required: false],
+      [name: "r1"],
+      [name: "r2"],
+      [name: "r3", nargs: :*],
+    ]]
+    assert_raise RuntimeError, "Missing required argument: <r1>", fn ->
+      parse(spec, [])
+    end
+    assert_raise RuntimeError, "Missing required argument: <r2>", fn ->
+      parse(spec, ["a"])
+    end
+    assert parse(spec, ["a", "b"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b"
+      }, subcmd: nil
+    }}
+    assert parse(spec, ["a", "b", "c"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b", "o1" => "c"
+      }, subcmd: nil
+    }}
+    assert parse(spec, ["a", "b", "c", "d"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b", "o1" => "c", "o2" => "d"
+      }, subcmd: nil
+    }}
+    assert parse(spec, ["a", "b", "c", "d", "e"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b", "o1" => "c", "o2" => "d", "r3" => ["e"]
+      }, subcmd: nil
+    }}
+    assert parse(spec, ["a", "b", "c", "d", "e", "f"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "r1" => "a", "r2" => "b", "o1" => "c", "o2" => "d", "r3" => ["e", "f"]
+      }, subcmd: nil
+    }}
+  end
+
   test "just options" do
     spec = [name: "tool", options: [[name: "hi"]]]
     assert parse(spec, []) == {:ok, %Cmd{

@@ -143,57 +143,65 @@ defmodule Commando.Parser do
     end
   end
 
-  defp assign_args(args, spec) do
-    {required, optional, glob} =
-      Enum.reduce(List.wrap(spec[:arguments]), {[], [], nil}, fn arg_spec, {required, optional, glob} ->
-        if arg_spec[:required] do
-          case arg_spec[:nargs] do
-            :* ->
-              glob = arg_spec
-            :+ ->
-              required = required ++ [arg_spec]
-              glob = arg_spec
-            _ ->
-              required = required ++ [arg_spec]
-          end
-        else
-          optional = optional ++ [arg_spec]
-        end
-        {required, optional, glob}
-      end)
 
+  defp group_args(spec) do
+    Enum.reduce(List.wrap(spec[:arguments]), {[], [], nil}, fn arg_spec, {required, optional, glob} ->
+      if arg_spec[:required] do
+        case arg_spec[:nargs] do
+          :* ->
+            glob = arg_spec
+          :+ ->
+            required = required ++ [arg_spec]
+            glob = arg_spec
+          _ ->
+            required = required ++ [arg_spec]
+        end
+      else
+        optional = optional ++ [arg_spec]
+      end
+      {required, optional, glob}
+    end)
+  end
+
+  defp arg_at_index(index, spec) do
+    {required, optional, glob} = group_args(spec)
+    req_cnt = length(required)
+    if index >= req_cnt do
+      if index - req_cnt >= length(optional) do
+        glob
+      else
+        Enum.at(optional, index-req_cnt)
+      end
+    else
+      Enum.at(required, index)
+    end
+  end
+
+  defp assign_args(args, spec) do
+    {required, optional, glob} = group_args(spec)
     all_specs = required ++ optional
 
     # The order of assigning values to arguments is as follows
     #
     #   usage: tool [o1] [o2] r1 r2 r3 [r3...]
     #
-    #     - r1
-    #     - r2
-    #     - r3
-    #     - o1
-    #     - o2
-    #     - r3...
+    #     r1, r2, r3, o1, o2, r3...
     #
     #   usage: tool [o1] r1 [o2] [r2...]
     #
-    #     - r1
-    #     - o1
-    #     - o2
-    #     - r2...
+    #     r1, o1, o2, r2...
     #
 
-    # FIXME: consider :multival setting for each argument
     {map, _} = Enum.reduce(args, {%{}, all_specs}, fn
       arg, {map, [arg_spec|rest]} ->
         if Util.is_glob_arg(arg_spec) do
-          {Map.update(map, arg_spec.name, [], &( &1 ++ [arg] )), rest}
+          {Map.update(map, arg_spec.name, [arg], &( &1 ++ [arg] )), rest}
         else
           {Map.put(map, arg_spec.name, arg), rest}
         end
 
       arg, {map, []} ->
-        {Map.update(map, glob.name, [], &( &1 ++ [arg] )), []}
+        {Map.update(map, glob.name, [arg], &( &1 ++ [arg] )), []}
     end)
 
     map
@@ -306,18 +314,15 @@ defmodule Commando.Parser do
   defp validate_args(args, spec) do
     # FIXME: check argument types
     case check_argument_count(spec, args) do
-      {:extra, index} ->
-        {:error, {:bad_arg, Enum.at(args, index)}}
+      {:extra, name} ->
+        {:error, {:bad_arg, name}}
 
-      {:missing, index} ->
-        cond do
-          arguments=spec[:arguments] ->
-            name = Enum.at(arguments, index)[:name]
-            {:error, {:missing_arg, name}}
+      :missing_cmd ->
+        {:error, :missing_cmd}
 
-          spec[:commands] ->
-            {:error, :missing_cmd}
-        end
+      {:missing_arg, index} ->
+        name = arg_at_index(index, spec)[:name]
+        {:error, {:missing_arg, name}}
 
       nil ->
         {:ok, args}
@@ -393,26 +398,32 @@ defmodule Commando.Parser do
 
   defp check_argument_count(%{arguments: arguments}, args) do
     {required_cnt, optional_cnt} = Enum.reduce(arguments, {0, 0}, fn
-      %{required: false}, {req_cnt, opt_cnt} -> {req_cnt, opt_cnt+1}
-      _, {req_cnt, opt_cnt} -> {req_cnt + 1, opt_cnt}
+      %{nargs: :+}, {req_cnt, _} ->
+        {req_cnt+1, :infinity}
+      %{nargs: :*}, {req_cnt, _} ->
+        {req_cnt, :infinity}
+      %{required: false}, {req_cnt, opt_cnt} ->
+        {req_cnt, opt_cnt+1}
+      _, {req_cnt, opt_cnt} ->
+        {req_cnt+1, opt_cnt}
     end)
+
     given_cnt = length(args)
     cond do
-      given_cnt > required_cnt + optional_cnt ->
-        {:extra, required_cnt + optional_cnt}
-
       given_cnt < required_cnt ->
-        {:missing, given_cnt}
+        {:missing_arg, given_cnt}
+
+      optional_cnt != :infinity and given_cnt > required_cnt + optional_cnt ->
+        {:extra, Enum.at(args, required_cnt + optional_cnt)}
 
       true -> nil
     end
   end
 
   defp check_argument_count(%{commands: _}, args) do
-    required_cnt = 1
     given_cnt = length(args)
-    if given_cnt < required_cnt do
-      {:missing, given_cnt}
+    if given_cnt < 1 do
+      :missing_cmd
     end
   end
 

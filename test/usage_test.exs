@@ -13,6 +13,20 @@ defmodule CommandoTest.UsageTest do
            == "tool <path> [<port>]"
   end
 
+  test "vararg" do
+    assert usage_args([
+      [name: "r1"],
+      [name: "o1", required: false],
+      [name: "r2", nargs: :+],
+    ]) == "tool <r1> [<o1>] <r2> [<r2>...]"
+
+    assert usage_args([
+      [name: "r1"],
+      [name: "o1", required: false],
+      [name: "r2", nargs: :*],
+    ]) == "tool <r1> [<o1>] [<r2>...]"
+  end
+
   test "just options" do
     assert usage([
       name: "tool", options: [[name: "hi"]],

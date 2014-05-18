@@ -146,6 +146,15 @@ defmodule Commando.Definition do
       {:argname, n} when is_binary(n) ->
         Map.put(opt, :argname, n)
 
+      {:multival, kind} when kind in [:overwrite, :keep, :accumulate, :error] ->
+        Map.put(opt, :multival, kind)
+
+      # :action: :store, {:store, val}, :accumulate, :keep
+      #          :error?
+
+      {:nargs, _} ->
+        config_error("Invalid option parameter: nargs")
+
       other ->
         compile_argument([other], opt)
     end
@@ -197,8 +206,8 @@ defmodule Commando.Definition do
       {:valtype, t} when t in [:boolean, :integer, :float, :string] ->
         %{arg | valtype: t}
 
-      {:multival, kind} when kind in [:overwrite, :keep, :accumulate, :error] ->
-        Map.put(arg, :multival, kind)
+      {:nargs, n} when n in [:*, :+] ->
+        Map.put(arg, :nargs, n)
 
       {:required, r} when r in [true, false] ->
         %{arg | required: r}
