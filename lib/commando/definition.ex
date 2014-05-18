@@ -206,7 +206,7 @@ defmodule Commando.Definition do
       {:valtype, t} when t in [:boolean, :integer, :float, :string] ->
         %{arg | valtype: t}
 
-      {:nargs, n} when n in [:*, :+] ->
+      {:nargs, n} when n in [:inf] ->
         Map.put(arg, :nargs, n)
 
       {:required, r} when r in [true, false] ->

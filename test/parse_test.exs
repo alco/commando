@@ -74,7 +74,7 @@ defmodule CommandoTest.ParseTest do
       [name: "o2", required: false],
       [name: "r1"],
       [name: "r2"],
-      [name: "r3", nargs: :+],
+      [name: "r3", nargs: :inf],
     ]]
     assert_raise RuntimeError, "Missing required argument: <r1>", fn ->
       parse(spec, [])
@@ -113,7 +113,7 @@ defmodule CommandoTest.ParseTest do
       [name: "o2", required: false],
       [name: "r1"],
       [name: "r2"],
-      [name: "r3", nargs: :*],
+      [name: "r3", nargs: :inf, required: false],
     ]]
     assert_raise RuntimeError, "Missing required argument: <r1>", fn ->
       parse(spec, [])

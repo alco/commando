@@ -148,15 +148,16 @@ defmodule Commando.Parser do
     Enum.reduce(List.wrap(spec[:arguments]), {[], [], nil}, fn arg_spec, {required, optional, glob} ->
       if arg_spec[:required] do
         case arg_spec[:nargs] do
-          :* ->
-            glob = arg_spec
-          :+ ->
+          :inf ->
             required = required ++ [arg_spec]
             glob = arg_spec
           _ ->
             required = required ++ [arg_spec]
         end
       else
+        if Util.is_glob_arg(arg_spec) do
+          glob = arg_spec
+        end
         optional = optional ++ [arg_spec]
       end
       {required, optional, glob}
@@ -398,9 +399,9 @@ defmodule Commando.Parser do
 
   defp check_argument_count(%{arguments: arguments}, args) do
     {required_cnt, optional_cnt} = Enum.reduce(arguments, {0, 0}, fn
-      %{nargs: :+}, {req_cnt, _} ->
+      %{nargs: :inf, required: true}, {req_cnt, _} ->
         {req_cnt+1, :infinity}
-      %{nargs: :*}, {req_cnt, _} ->
+      %{nargs: :inf}, {req_cnt, _} ->
         {req_cnt, :infinity}
       %{required: false}, {req_cnt, opt_cnt} ->
         {req_cnt, opt_cnt+1}

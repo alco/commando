@@ -124,6 +124,6 @@ defmodule Commando.Util do
   ##
 
   def is_glob_arg(arg_spec) do
-    arg_spec[:nargs] == :* or arg_spec[:nargs] == :+
+    arg_spec[:nargs] == :inf
   end
 end

@@ -17,13 +17,13 @@ defmodule CommandoTest.UsageTest do
     assert usage_args([
       [name: "r1"],
       [name: "o1", required: false],
-      [name: "r2", nargs: :+],
+      [name: "r2", nargs: :inf],
     ]) == "tool <r1> [<o1>] <r2> [<r2>...]"
 
     assert usage_args([
       [name: "r1"],
       [name: "o1", required: false],
-      [name: "r2", nargs: :*],
+      [name: "r2", nargs: :inf, required: false],
     ]) == "tool <r1> [<o1>] [<r2>...]"
   end
 
