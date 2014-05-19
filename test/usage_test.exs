@@ -27,6 +27,20 @@ defmodule CommandoTest.UsageTest do
     ]) == "tool <r1> [<o1>] [<r2>...]"
   end
 
+  test "named args" do
+    assert usage_args([
+      [name: "r1", argname: "path"],
+      [name: "o1", argname: "other", required: false],
+    ]) == "tool <path> [<other>]"
+  end
+
+  test "optional args" do
+    assert usage_args([
+      [name: "path", required: false, default: "."],
+      [name: "port"],
+    ]) == "tool [<path>] <port>"
+  end
+
   test "just options" do
     assert usage([
       name: "tool", options: [[name: "hi"]],
@@ -58,22 +72,22 @@ defmodule CommandoTest.UsageTest do
 
     assert usage([
       name: "tool", list_options: :all,
-      options: [[name: "hi", short: "h", valtype: :boolean]],
+      options: [[name: "hi", short: "h", argtype: :boolean]],
     ]) == "tool [-h|--hi]"
 
     assert usage([
       name: "tool", list_options: :short,
-      options: [[name: "hi", short: "h", valtype: :boolean, required: true]],
+      options: [[name: "hi", short: "h", argtype: :boolean, required: true]],
     ]) == "tool -h"
 
     assert usage([
       name: "tool", list_options: :long,
-      options: [[name: "hi", short: "h", valtype: :boolean, required: true]],
+      options: [[name: "hi", short: "h", argtype: :boolean, required: true]],
     ]) == "tool --hi"
 
     assert usage([
       name: "tool", list_options: :all,
-      options: [[name: "hi", short: "h", valtype: :boolean, required: true]],
+      options: [[name: "hi", short: "h", argtype: :boolean, required: true]],
     ]) == "tool {-h|--hi}"
   end
 
@@ -108,7 +122,7 @@ defmodule CommandoTest.UsageTest do
     spec = [
       prefix: "pre",
       name: "tool",
-      options: [[name: "log", valtype: :boolean], [short: "v"]],
+      options: [[name: "log", argtype: :boolean], [short: "v"]],
       commands: [
         [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
         [name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
@@ -130,7 +144,7 @@ defmodule CommandoTest.UsageTest do
   test "autohelp subcommand" do
     spec = [
       name: "tool",
-      options: [[name: "log", valtype: :boolean], [short: "v"]],
+      options: [[name: "log", argtype: :boolean], [short: "v"]],
       commands: [
         :help,
         [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],

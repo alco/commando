@@ -99,7 +99,7 @@ defmodule Commando.Parser do
       opt_name = opt_name_to_atom(opt)
       kind = []
 
-      if valtype=opt[:valtype], do: kind = [valtype|kind]
+      if argtype=opt[:argtype], do: kind = [argtype|kind]
 
       case opt[:multival] do
         default when default in [nil, :overwrite] ->
@@ -145,42 +145,32 @@ defmodule Commando.Parser do
 
 
   defp group_args(spec) do
-    Enum.reduce(List.wrap(spec[:arguments]), {[], [], nil}, fn arg_spec, {required, optional, glob} ->
-      if arg_spec[:required] do
-        case arg_spec[:nargs] do
-          :inf ->
-            required = required ++ [arg_spec]
-            glob = arg_spec
-          _ ->
-            required = required ++ [arg_spec]
-        end
-      else
-        if Util.is_glob_arg(arg_spec) do
-          glob = arg_spec
-        end
-        optional = optional ++ [arg_spec]
-      end
-      {required, optional, glob}
-    end)
+    arguments = List.wrap(spec[:arguments])
+    required = Enum.filter(arguments, &match?(%{required: true}, &1))
+    req_cnt = length(required)
+    glob = Enum.find(arguments, &Util.is_glob_arg/1)
+    {required, req_cnt, glob}
   end
 
   defp arg_at_index(index, spec) do
-    {required, optional, glob} = group_args(spec)
-    req_cnt = length(required)
+    {required, req_cnt, glob} = group_args(spec)
     if index >= req_cnt do
-      if index - req_cnt >= length(optional) do
-        glob
-      else
-        Enum.at(optional, index-req_cnt)
-      end
+      glob
     else
       Enum.at(required, index)
     end
   end
 
+  defp assign_arg(map, arg, %{name: name}=arg_spec) do
+    if Util.is_glob_arg(arg_spec) do
+      Map.update(map, name, [arg], &( &1 ++ [arg] ))
+    else
+      Map.put(map, name, arg)
+    end
+  end
+
   defp assign_args(args, spec) do
-    {required, optional, glob} = group_args(spec)
-    all_specs = required ++ optional
+    {_, req_cnt, glob} = group_args(spec)
 
     # The order of assigning values to arguments is as follows
     #
@@ -193,20 +183,36 @@ defmodule Commando.Parser do
     #     r1, o1, o2, r2...
     #
 
-    {map, _} = Enum.reduce(args, {%{}, all_specs}, fn
-      arg, {map, [arg_spec|rest]} ->
-        if Util.is_glob_arg(arg_spec) do
-          {Map.update(map, arg_spec.name, [arg], &( &1 ++ [arg] )), rest}
-        else
-          {Map.put(map, arg_spec.name, arg), rest}
-        end
+    initial_map =
+      List.wrap(spec[:arguments])
+      |> Enum.filter(&match?(%{default: _}, &1))
+      |> Enum.map(fn %{name: name, default: val} -> {name, val} end)
+      |> Enum.into(%{})
 
-      arg, {map, []} ->
-        {Map.update(map, glob.name, [arg], &( &1 ++ [arg] )), []}
+    arg_cnt = length(args)
+    all_specs = List.wrap(spec[:arguments]) ++ [glob]
+
+    {map, _, _, _} = Enum.reduce(args, {initial_map, req_cnt, arg_cnt, all_specs}, fn
+      arg, {map, _, _, [arg_spec]} ->
+        # glob arg
+        {assign_arg(map, arg, arg_spec), 0, 0, [arg_spec]}
+
+      arg, {map, req_cnt, arg_cnt, [%{required: true}=arg_spec|rest]} ->
+        {assign_arg(map, arg, arg_spec), req_cnt-1, arg_cnt-1, rest}
+
+      arg, {map, req_cnt, arg_cnt, [arg_spec|rest]} when arg_cnt > req_cnt ->
+        {assign_arg(map, arg, arg_spec), req_cnt, arg_cnt-1, rest}
+
+      arg, {map, req_cnt, arg_cnt, specs} ->
+        [arg_spec|rest] = skip_optional(specs)
+        {assign_arg(map, arg, arg_spec), req_cnt-1, arg_cnt-1, rest}
     end)
 
     map
   end
+
+  defp skip_optional([%{required: true}|_]=specs), do: specs
+  defp skip_optional([_|rest]), do: skip_optional(rest)
 
   ###
 
@@ -224,7 +230,7 @@ defmodule Commando.Parser do
         !option_set[name] ->
           {:bad_opt, name}
 
-        spec[:valtype] != :boolean and val in [false, true] ->
+        spec[:argtype] != :boolean and val in [false, true] ->
           {:missing_opt_arg, name}
 
         true ->

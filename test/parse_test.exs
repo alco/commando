@@ -92,17 +92,17 @@ defmodule CommandoTest.ParseTest do
     }}
     assert parse(spec, ["a", "b", "c", "d"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{
-        "r1" => "a", "r2" => "b", "r3" => ["c"], "o1" => "d"
+        "o1" => "a", "r1" => "b", "r2" => "c", "r3" => ["d"]
       }, subcmd: nil
     }}
     assert parse(spec, ["a", "b", "c", "d", "e"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{
-        "r1" => "a", "r2" => "b", "r3" => ["c"], "o1" => "d", "o2" => "e"
+        "o1" => "a", "o2" => "b", "r1" => "c", "r2" => "d", "r3" => ["e"]
       }, subcmd: nil
     }}
     assert parse(spec, ["a", "b", "c", "d", "e", "f"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{
-        "r1" => "a", "r2" => "b", "r3" => ["c", "f"], "o1" => "d", "o2" => "e"
+        "o1" => "a", "o2" => "b", "r1" => "c", "r2" => "d", "r3" => ["e", "f"]
       }, subcmd: nil
     }}
   end
@@ -128,22 +128,22 @@ defmodule CommandoTest.ParseTest do
     }}
     assert parse(spec, ["a", "b", "c"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{
-        "r1" => "a", "r2" => "b", "o1" => "c"
+        "o1" => "a", "r1" => "b", "r2" => "c"
       }, subcmd: nil
     }}
     assert parse(spec, ["a", "b", "c", "d"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{
-        "r1" => "a", "r2" => "b", "o1" => "c", "o2" => "d"
+        "o1" => "a", "o2" => "b", "r1" => "c", "r2" => "d"
       }, subcmd: nil
     }}
     assert parse(spec, ["a", "b", "c", "d", "e"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{
-        "r1" => "a", "r2" => "b", "o1" => "c", "o2" => "d", "r3" => ["e"]
+        "o1" => "a", "o2" => "b", "r1" => "c", "r2" => "d", "r3" => ["e"]
       }, subcmd: nil
     }}
     assert parse(spec, ["a", "b", "c", "d", "e", "f"]) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{
-        "r1" => "a", "r2" => "b", "o1" => "c", "o2" => "d", "r3" => ["e", "f"]
+        "o1" => "a", "o2" => "b", "r1" => "c", "r2" => "d", "r3" => ["e", "f"]
       }, subcmd: nil
     }}
   end
@@ -183,7 +183,7 @@ defmodule CommandoTest.ParseTest do
       name: "tool", options: [hi: "hello"], arguments: %{}, subcmd: nil
     }}
 
-    spec = [name: "tool", options: [[name: "hi", valtype: :integer]]]
+    spec = [name: "tool", options: [[name: "hi", argtype: :integer]]]
     assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
       parse(spec, ["--hi"])
     end
@@ -194,7 +194,7 @@ defmodule CommandoTest.ParseTest do
       name: "tool", options: [hi: 13], arguments: %{}, subcmd: nil
     }}
 
-    spec = [name: "tool", options: [[name: "hi", valtype: :boolean]]]
+    spec = [name: "tool", options: [[name: "hi", argtype: :boolean]]]
     assert_raise RuntimeError, "Bad option value for --hi: hello", fn ->
       parse(spec, ["--hi=hello"])
     end
@@ -209,7 +209,7 @@ defmodule CommandoTest.ParseTest do
   test "defaults for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
       [name: "host", short: "h", default: "localhost"],
-      [name: "port", short: "p", valtype: :integer, default: 1234],
+      [name: "port", short: "p", argtype: :integer, default: 1234],
     ]]
 
     assert parse(spec, []) == {:ok, %Cmd{
@@ -223,9 +223,27 @@ defmodule CommandoTest.ParseTest do
     }}
   end
 
+  test "defaults for arguments" do
+    spec = [name: "tool", arguments: [
+      [name: "path", required: false, default: "."],
+      [name: "port"],
+    ]]
+
+    assert parse(spec, ["12"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "path" => ".", "port" => "12"
+      }, subcmd: nil
+    }}
+    assert parse(spec, ["home/", "33"]) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{
+        "path" => "home/", "port" => "33"
+      }, subcmd: nil
+    }}
+  end
+
   test ":overwrite modifier for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "mercury", valtype: :boolean, multival: :overwrite],
+      [name: "mercury", argtype: :boolean, multival: :overwrite],
     ]]
 
     assert parse(spec, ["--mercury"]) == {:ok, %Cmd{
@@ -244,8 +262,8 @@ defmodule CommandoTest.ParseTest do
 
   test ":keep modifier for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "mercury", valtype: :boolean, multival: :overwrite],
-      [name: "venus", valtype: :integer, multival: :keep],
+      [name: "mercury", argtype: :boolean, multival: :overwrite],
+      [name: "venus", argtype: :integer, multival: :keep],
     ]]
 
     assert parse(spec, ["--venus=13"]) === {:ok, %Cmd{
@@ -261,8 +279,8 @@ defmodule CommandoTest.ParseTest do
 
   test ":accumulate modifier for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "venus", valtype: :integer, multival: :keep],
-      [name: "earth", valtype: :float, multival: :accumulate],
+      [name: "venus", argtype: :integer, multival: :keep],
+      [name: "earth", argtype: :float, multival: :accumulate],
     ]]
 
     assert parse(spec, ["--earth=13"]) === {:ok, %Cmd{
@@ -278,8 +296,8 @@ defmodule CommandoTest.ParseTest do
 
   test ":error modifier for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "earth", valtype: :float, multival: :accumulate],
-      [name: "mars", valtype: :string, multival: :error],
+      [name: "earth", argtype: :float, multival: :accumulate],
+      [name: "mars", argtype: :string, multival: :error],
     ]]
 
     assert parse(spec, ["--mars=13"]) == {:ok, %Cmd{
@@ -300,9 +318,9 @@ defmodule CommandoTest.ParseTest do
       [name: "path"],
       [name: "port", required: false]
     ], options: [
-      [name: "earth", valtype: :float],
-      [name: "mars", valtype: :string],
-      [short: "o", valtype: :string, required: true],
+      [name: "earth", argtype: :float],
+      [name: "mars", argtype: :string],
+      [short: "o", argtype: :string, required: true],
     ]]
 
     assert_raise RuntimeError, "Missing required argument: <path>", fn ->
@@ -322,7 +340,7 @@ defmodule CommandoTest.ParseTest do
   test "subcommands" do
     spec = [
       name: "tool",
-      options: [[name: "log", valtype: :boolean], [short: "v"]],
+      options: [[name: "log", argtype: :boolean], [short: "v"]],
       commands: [
         [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
         [name: "cmdb", options: [[short: "v"], [short: "p"]], arguments: [[]]],

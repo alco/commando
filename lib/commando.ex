@@ -279,14 +279,14 @@ defmodule Commando do
     do: (Enum.map(arguments, &format_argument/1) |> Enum.join(" "))
 
 
-  defp format_argument(%{name: name, nargs: :inf, required: true}),
+  defp format_argument(%{argname: name, nargs: :inf, required: true}),
     do: "<#{name}> [<#{name}>...]"
-  defp format_argument(%{name: name, nargs: :inf}), do: "[<#{name}>...]"
-  defp format_argument(%{name: name, required: false}), do: "[<#{name}>]"
-  defp format_argument(%{name: name}), do: "<#{name}>"
+  defp format_argument(%{argname: name, nargs: :inf}), do: "[<#{name}>...]"
+  defp format_argument(%{argname: name, required: false}), do: "[<#{name}>]"
+  defp format_argument(%{argname: name}), do: "<#{name}>"
 
 
-  defp format_argument_help(%{name: name, help: ""}, indent) do
+  defp format_argument_help(%{argname: name, help: ""}, indent) do
     justified_arg_str =
       :io_lib.format('~-*s', [10 + @default_indent - indent, name])
       |> String.from_char_data!()
@@ -294,7 +294,7 @@ defmodule Commando do
     arg_str <> "(no documentation)"
   end
 
-  defp format_argument_help(%{name: name, help: help}, indent) do
+  defp format_argument_help(%{argname: name, help: help}, indent) do
     justified_arg_str =
       :io_lib.format('~-*s', [10 + @default_indent - indent, name])
       |> String.from_char_data!()

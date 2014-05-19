@@ -12,13 +12,13 @@ defmodule Commando.Definition do
   }
 
   @opt_defaults %{
-    valtype: :string,
+    argtype: :string,
     required: false,
     help: "",
   }
 
   @arg_defaults %{
-    valtype: :string,
+    argtype: :string,
     required: true,
     multival: :accumulate,
     help: "",
@@ -30,7 +30,7 @@ defmodule Commando.Definition do
   }
 
   @help_opt_spec %{
-    valtype: :boolean,
+    argtype: :boolean,
     required: false,
     help: "Print description of the command.",
     short: "h",
@@ -38,7 +38,7 @@ defmodule Commando.Definition do
   }
 
   @version_opt_spec %{
-    valtype: :boolean,
+    argtype: :boolean,
     required: false,
     help: "Print version information and exit.",
     short: "v",
@@ -47,10 +47,12 @@ defmodule Commando.Definition do
 
   @help_cmd_spec Map.merge(@cmd_defaults, %{
     name: "help",
+    argname: "help",
     help: "Print description of the given command.",
     arguments: [
       Map.merge(@arg_defaults, %{
         name: "command",
+        argname: "command",
         required: false,
         help: "The command to describe. When omitted, help for the tool itself is printed."
       })
@@ -143,9 +145,6 @@ defmodule Commando.Definition do
       {:short, <<_>>=s} ->
         Map.put(opt, :short, s)
 
-      {:argname, n} when is_binary(n) ->
-        Map.put(opt, :argname, n)
-
       {:multival, kind} when kind in [:overwrite, :keep, :accumulate, :error] ->
         Map.put(opt, :multival, kind)
 
@@ -203,8 +202,11 @@ defmodule Commando.Definition do
       {:name, n} when is_binary(n) ->
         Map.put(arg, :name, n)
 
-      {:valtype, t} when t in [:boolean, :integer, :float, :string] ->
-        %{arg | valtype: t}
+      {:argname, n} when is_binary(n) ->
+        Map.put(arg, :argname, n)
+
+      {:argtype, t} when t in [:boolean, :integer, :float, :string] ->
+        %{arg | argtype: t}
 
       {:nargs, n} when n in [:inf] ->
         Map.put(arg, :nargs, n)
@@ -244,7 +246,7 @@ defmodule Commando.Definition do
     if name == nil and opt[:short] == nil do
       config_error("Option #{inspect opt} should have :name or :short or both")
     end
-    if opt[:argname] == nil and opt[:valtype] != :boolean and name != nil do
+    if opt[:argname] == nil and opt[:argtype] != :boolean and name != nil do
       opt = Map.put(opt, :argname, name)
     end
     if opt[:default] && opt[:required] do
@@ -254,8 +256,13 @@ defmodule Commando.Definition do
   end
 
   defp validate_argument(arg=%{}) do
-    if arg[:name] == nil do
-      arg = Map.put(arg, :name, "arg")
+    name = arg[:name]
+    if name == nil do
+      name = "arg"
+      arg = Map.put(arg, :name, name)
+    end
+    if arg[:argname] == nil do
+      arg = Map.put(arg, :argname, name)
     end
     if arg[:default] && arg[:required] do
       config_error("Argument parameter :default implies required=false")
@@ -283,11 +290,16 @@ defmodule Commando.Definition do
   end
 
   defp validate_command(cmd=%{}, spec) do
-    if !cmd[:name] do
+    name = cmd[:name]
+    if name == nil do
       config_error("Expected command #{inspect cmd} to have a name")
     end
-    if spec[:help_option] == :all_cmd, do:
+    if cmd[:argname] == nil do
+      cmd = Map.put(cmd, :argname, name)
+    end
+    if spec[:help_option] == :all_cmd do
       cmd = Map.update!(cmd, :options, &[@help_opt_spec|&1])
+    end
     cmd
   end
 

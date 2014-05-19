@@ -42,7 +42,7 @@ commands = [
    arguments: [[name: "path", required: false, default: "."]],
    options: [
      [name: "list", short: "l",
-      valtype: :boolean,
+      argtype: :boolean,
       help: serve_list_help],
    ],
    action: &Mix.Tasks.Faketask.serve/2],
@@ -80,7 +80,7 @@ spec = [
      help: "Hostname to listen on. Accepts extended format with port, e.g. 'localhost:4000'."],
 
     [name: "port", short: "p",
-     valtype: :integer,
+     argtype: :integer,
      default: 1234,
      help: "Port number to listen on."],
   ],

@@ -16,7 +16,7 @@ spec = [
     {:version, :V},
 
     [name: "verbose", short: "v",
-     valtype: :boolean,
+     argtype: :boolean,
      help: "Make the operation more talkative"],
 
     [name: "data", short: "d",
@@ -28,11 +28,11 @@ spec = [
      help: "HTTP POST binary data"],
 
     [name: "head", short: "I",
-     valtype: :boolean,
+     argtype: :boolean,
      help: "Show document info only"],
 
     [name: "include", short: "i",
-     valtype: :boolean,
+     argtype: :boolean,
      help: "Include protocol headers in the output"],
   ],
 ]

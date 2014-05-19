@@ -7,7 +7,7 @@ spec = [
     :version,
 
     [name: "req",
-     valtype: :integer],
+     argtype: :integer],
 
     [short: "o"],
   ],
