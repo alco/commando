@@ -2,6 +2,7 @@ spec = [
   name: "err",
 
   help_option: :top_cmd,
+  list_options: :all,
 
   options: [
     :version,
