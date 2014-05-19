@@ -6,7 +6,6 @@ defmodule Commando.Util do
     format_errors: :report,
     exec_version: true,
     exec_help: true,
-    exec_commands: true,
   }
 
   def compile_config(opts),
@@ -37,20 +36,17 @@ defmodule Commando.Util do
 
   defp compile_autoexec_param(config, param) do
     config = Map.merge(config, %{
-      exec_help: false, exec_version: false, exec_commands: false
+      exec_help: false, exec_version: false
     })
     case param do
       flag when flag in [true, false] ->
-        Map.merge(config, %{exec_help: flag, exec_version: flag, exec_commands: flag})
+        Map.merge(config, %{exec_help: flag, exec_version: flag})
 
       :help ->
         Map.put(config, :exec_help, true)
 
       :version ->
         Map.put(config, :exec_version, true)
-
-      :commands ->
-        Map.put(config, :exec_commands, true)
 
       list when is_list(list) ->
         Enum.reduce(list, config, fn

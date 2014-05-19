@@ -365,9 +365,7 @@ defmodule Commando.Parser do
     if halt?, do: halt(config)
   end
 
-  defp execute_cmd_if_needed(%Cmd{subcmd: %Cmd{}=cmd}=topcmd,
-                                     %{action: f}, _, %{exec_commands: true})
-  do
+  defp execute_cmd_if_needed(%Cmd{subcmd: %Cmd{}=cmd}=topcmd, %{action: f}, _, _) do
     f.(cmd, topcmd)
   end
 
