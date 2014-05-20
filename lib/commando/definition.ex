@@ -157,9 +157,6 @@ defmodule Commando.Definition do
       {:store, :self} ->
         Map.put(opt, :store, :self)
 
-      # :action: :store, {:store, val}, :accumulate, :keep
-      #          :error?
-
       {:nargs, _} ->
         config_error("Invalid option parameter: nargs")
 
@@ -223,6 +220,9 @@ defmodule Commando.Definition do
           typ ->
             Map.put(arg, :argtype, typ)
         end
+
+      {:action, f} when is_function(f, 2) ->
+        Map.put(arg, :action, f)
 
       {:nargs, n} when n in [:inf] ->
         Map.put(arg, :nargs, n)

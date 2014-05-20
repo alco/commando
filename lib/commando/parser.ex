@@ -39,7 +39,7 @@ defmodule Commando.Parser do
     parse_head? = is_list(commands) and commands != []
     parser_config = [switches: switches, aliases: aliases, strict: true]
 
-    {opts, args} = case do_parse_internal(args, {parser_config, not parse_head?}, spec) do
+    {opts, args} = case do_parse_internal(args, {parser_config, not parse_head?}, {spec, config}) do
       {opts, args, nil} ->
         {process_opts(opts, spec, config), process_args(args, spec)}
 
@@ -540,10 +540,11 @@ defmodule Commando.Parser do
     parse_internal_end(opts, args, nil)
   end
 
-  defp do_parse_internal(argv, {parser_config, all}=config, opts, args, spec) do
+  defp do_parse_internal(argv, {parser_config, all}=config, opts, args, {spec, _}=speconf) do
     case OptionParser.next(argv, parser_config) do
       {:ok, option, value, rest} ->
-        do_parse_internal(rest, config, [{option, value}|opts], args, spec)
+        {option, value} = execute_opt_action({option, value}, speconf)
+        do_parse_internal(rest, config, [{option, value}|opts], args, speconf)
 
       {:error, {:undefined, option, value}=bad, rest} ->
         option_bin = atom_to_binary(option)
@@ -556,7 +557,8 @@ defmodule Commando.Parser do
         else
           case check_option_store(option_bin, value, opt_spec[:store]) do
             {:ok, val} ->
-              do_parse_internal(rest, config, [{option, val}|opts], args, spec)
+              {option, val} = execute_opt_action({option, val}, speconf)
+              do_parse_internal(rest, config, [{option, val}|opts], args, speconf)
 
             :bad_val ->
               parse_internal_end(opts, args, {:value, option, value})
@@ -564,7 +566,8 @@ defmodule Commando.Parser do
             nil ->
               case check_option_argument(value, opt_spec) do
                 {:ok, val} ->
-                  do_parse_internal(rest, config, [{option, val}|opts], args, spec)
+                  {option, val} = execute_opt_action({option, val}, speconf)
+                  do_parse_internal(rest, config, [{option, val}|opts], args, speconf)
 
                 nil ->
                   parse_internal_end(opts, args, {:value, option, value})
@@ -578,13 +581,43 @@ defmodule Commando.Parser do
       {:error, ["--"|rest]} ->
         parse_internal_end(opts, {args, rest}, nil)
 
-      {:error, [arg|rest]=remaining_args} ->
+      {:error, [arg|rest]} ->
+        arg_spec = arg_at_index(length(args), spec)
+        arg = execute_arg_action(arg, arg_spec, speconf)
         if all do
-          do_parse_internal(rest, config, opts, [arg|args], spec)
+          do_parse_internal(rest, config, opts, [arg|args], speconf)
         else
-          parse_internal_end(opts, {args, remaining_args}, nil)
+          parse_internal_end(opts, {args, [arg|rest]}, nil)
         end
     end
+  end
+
+  defp execute_opt_action({option, value}, {spec, config}) do
+    option_bin = atom_to_binary(option)
+    opt_spec = Enum.find(spec[:options], fn opt_spec ->
+      opt_spec[:name] == option_bin
+    end)
+    if f=opt_spec[:action] do
+      case f.({option, value}, spec) do
+        :halt -> halt(config, 0)
+        {opt, val} ->
+          option = opt
+          value = val
+      end
+    end
+    {option, value}
+  end
+
+  defp execute_arg_action(arg, arg_spec, {spec, config}) do
+    if f=arg_spec[:action] do
+      case f.({arg_spec[:name], arg}, spec) do
+        :halt -> halt(config, 0)
+        {:halt, status} -> halt(config, status)
+        {_name, val} ->
+          arg = val
+      end
+    end
+    arg
   end
 
   defp check_option_store(_name, _val, nil) do

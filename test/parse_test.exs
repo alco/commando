@@ -428,6 +428,48 @@ defmodule CommandoTest.ParseTest do
     }}
   end
 
+  test "actions" do
+    opt_action = fn
+      {_name, nil}, _spec ->
+        IO.write "Current path is: ..."
+        :halt
+
+      opt, _spec -> opt
+    end
+
+    arg_action = fn
+      {name, val}=arg, _spec ->
+        IO.write "Got value #{val} for arg #{name}"
+        arg
+    end
+
+    spec = [name: "tool", options: [
+      [name: "path", argtype: [:string, :optional], action: opt_action],
+    ], arguments: [
+      [name: "word", nargs: :inf, required: false, action: arg_action],
+    ]]
+
+    import ExUnit.CaptureIO
+
+    assert capture_io(fn ->
+      assert catch_exit(parse(spec, ["--path"], halt: :exit)) == {Commando, 0}
+    end) == "Current path is: ..."
+
+    assert capture_io(fn ->
+      assert catch_exit(parse(spec, ["--path", "a"], halt: :exit)) == {Commando, 0}
+    end) == "Current path is: ..."
+
+    assert parse(spec, ["--path=a"]) == {:ok, %Cmd{
+      name: "tool", options: [path: "a"], arguments: %{}
+    }}
+
+    assert capture_io(fn ->
+      assert parse(spec, ["--path=a", "b"]) == {:ok, %Cmd{
+        name: "tool", options: [path: "a"], arguments: %{"word" => ["b"]}
+      }}
+    end) == "Got value b for arg word"
+  end
+
   test "subcommands" do
     spec = [
       name: "tool",
