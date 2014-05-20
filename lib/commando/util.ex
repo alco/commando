@@ -87,11 +87,22 @@ defmodule Commando.Util do
       {:bad_opt_value, {name, val}} ->
         "Bad option value for #{opt_name_to_bin(name)}: #{val}"
 
+      {:bad_opt_choice, {name, val, values}} ->
+        values_str = Enum.join(values, ", ")
+        "Bad option value for #{opt_name_to_bin(name)}: #{val}. Has to be one of: #{values_str}"
+
       {:duplicate_opt, name} ->
         "Error trying to overwrite the value for option #{opt_name_to_bin(name)}"
 
       {:bad_arg, name} ->
         "Unexpected argument: #{name}"
+
+      {:bad_arg_value, {name, val}} ->
+        "Bad argument value for <#{name}>: #{val}"
+
+      {:bad_arg_choice, {name, val, values}} ->
+        values_str = Enum.join(values, ", ")
+        "Bad argument value for <#{name}>: #{val}. Has to be one of: #{values_str}"
 
       {:missing_arg, name} ->
         "Missing required argument: <#{name}>"

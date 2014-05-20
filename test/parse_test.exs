@@ -395,13 +395,17 @@ defmodule CommandoTest.ParseTest do
       name: "tool", options: [planet: [2, 9]], arguments: %{"target" => "i386"}
     }}
 
-    msg = "Bad argument value: 386. Has to be one of: i386, x86_64, armv7"
+    msg = "Bad argument value for <target>: 386. Has to be one of: i386, x86_64, armv7"
     assert_raise RuntimeError, msg, fn ->
       parse(spec, ["386"]) |> IO.inspect
     end
-    msg = "Bad option value: Pluto. Has to be one of: venus, mars, pluto"
+    msg = "Bad option value for --planet: Pluto"
     assert_raise RuntimeError, msg, fn ->
       parse(spec, ["--planet", "Pluto", "armv7"])
+    end
+    msg = "Bad option value for --planet: 3. Has to be one of: 2, 4, 9"
+    assert_raise RuntimeError, msg, fn ->
+      parse(spec, ["--planet", "3", "armv7"])
     end
   end
 

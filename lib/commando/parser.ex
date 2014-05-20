@@ -64,7 +64,8 @@ defmodule Commando.Parser do
         {:error, reason} -> throw parse_error(reason)
       end
     else
-      topcmd = %Cmd{topcmd | arguments: assign_args(args, spec)}
+      args = assign_args(args, spec)
+      topcmd = %Cmd{topcmd | arguments: args}
     end
 
     topcmd
@@ -123,7 +124,7 @@ defmodule Commando.Parser do
 
 
   defp process_args(args, spec) do
-    case validate_args(args, spec) do
+    case prevalidate_args(args, spec) do
       {:ok, args} -> args
 
       {:error, reason} ->
@@ -150,6 +151,7 @@ defmodule Commando.Parser do
   end
 
   defp assign_arg(map, arg, %{name: name}=arg_spec) do
+    check_arg_type(arg, arg_spec)
     if Util.is_glob_arg(arg_spec) do
       Map.update(map, name, [arg], &( &1 ++ [arg] ))
     else
@@ -202,6 +204,55 @@ defmodule Commando.Parser do
   defp skip_optional([%{required: true}|_]=specs), do: specs
   defp skip_optional([_|rest]), do: skip_optional(rest)
 
+
+  defp check_arg_type(arg, %{name: name}=spec) do
+    case spec[:argtype] do
+      nil -> arg
+
+      {:choice, typ, values} ->
+        new_val = case convert_value(arg, typ) do
+          :error -> throw parse_error({:bad_arg_value, {name, arg}})
+          {:ok, value} -> value
+        end
+        unless new_val in values do
+          throw parse_error({:bad_arg_choice, {name, arg, values}})
+        end
+        new_val
+
+      other ->
+        case convert_value(arg, other) do
+          :error -> throw parse_error({:bad_arg_value, {name, arg}})
+          {:ok, value} -> value
+        end
+    end
+  end
+
+  defp convert_value(val, :string) do
+    {:ok, val}
+  end
+
+  defp convert_value(val, :boolean) do
+    case val do
+      t when t in [true, "true"] -> {:ok, true}
+      f when f in [false, "false"] -> {:ok, false}
+      _ -> :error
+    end
+  end
+
+  defp convert_value(val, :integer) do
+    case Integer.parse(val) do
+      {value, ""} -> {:ok, value}
+      _ -> :error
+    end
+  end
+
+  defp convert_value(val, :float) do
+    case Float.parse(val) do
+      {value, ""} -> {:ok, value}
+      _ -> :error
+    end
+  end
+
   ###
 
   defp process_invalid_opt({:undefined, opt, _}),
@@ -243,7 +294,7 @@ defmodule Commando.Parser do
         values ->
           case opt_spec[:multival] do
             :error ->
-              if not match?([_], values) do
+              unless match?([_], values) do
                 bad = bad ++ [duplicate_opt: opt_name]
                 opts = Keyword.delete(opts, opt_name)
               end
@@ -254,7 +305,7 @@ defmodule Commando.Parser do
           case opt_spec[:argtype] do
             {:choice, _, valid_vals} ->
               bad = bad ++ Enum.reduce(values, [], fn val, acc ->
-                if not val in valid_vals do
+                unless val in valid_vals do
                   acc = acc ++ [bad_opt_choice: {opt_name, val, valid_vals}]
                 end
                 acc
@@ -291,20 +342,37 @@ defmodule Commando.Parser do
         :accumulate ->
           values = Keyword.get_values(opts, opt_name)
           if values != [] do
+            check_opt_val(values, opt_spec)
             opts = Keyword.update!(opts, opt_name, fn _ -> values end)
           end
 
         o when o in [nil, :overwrite] ->
           val = List.last(Keyword.get_values(opts, opt_name))
           if val != nil do
+            check_opt_val(val, opt_spec)
             opts = Keyword.update!(opts, opt_name, fn _ -> val end)
           end
 
-        other when other in [:keep, :error] -> nil
+        other when other in [:keep, :error] ->
+          values = Keyword.get_values(opts, opt_name)
+          check_opt_val(values, opt_spec)
+          nil
       end
       opts
     end)
   end
+
+  defp check_opt_val(values, spec) when is_list(values) do
+    Enum.each(values, &check_opt_val(&1, spec))
+  end
+
+  defp check_opt_val(val, %{argtype: {:choice, _, values}}=spec) do
+    unless val in values do
+      throw parse_error({:bad_opt_choice, {opt_name_to_atom(spec), val, values}})
+    end
+  end
+
+  defp check_opt_val(_, _), do: nil
 
   # Execute help or version option if instructed to
   defp execute_opts_if_needed(opts, spec, config) do
@@ -326,8 +394,7 @@ defmodule Commando.Parser do
     opts
   end
 
-  defp validate_args(args, spec) do
-    # FIXME: check argument types
+  defp prevalidate_args(args, spec) do
     case check_argument_count(spec, args) do
       {:extra, name} ->
         {:error, {:bad_arg, name}}
@@ -340,8 +407,6 @@ defmodule Commando.Parser do
         {:error, {:missing_arg, name}}
 
       nil ->
-        # Check :choice and value type
-        #Enum.reduce(args)
         {:ok, args}
     end
   end
