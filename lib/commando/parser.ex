@@ -84,10 +84,12 @@ defmodule Commando.Parser do
     Enum.reduce(options, {[], []}, fn opt, {switches, aliases} ->
       opt_name = opt_name_to_atom(opt)
 
-      kind = case opt[:argtype] do
-        nil             -> []
-        {:choice, t, _} -> [t]
-        other           -> [other]
+      kind = unless opt[:argoptional] do
+        case opt[:argtype] do
+          nil             -> []
+          {:choice, t, _} -> [t]
+          other           -> [other]
+        end
       end
 
       #case opt[:multival] do
@@ -101,7 +103,7 @@ defmodule Commando.Parser do
         aliases = [{binary_to_atom(short), opt_name}|aliases]
       end
 
-      if kind != [], do: switches = [{opt_name, [:keep|kind]}|switches]
+      if not kind in [nil, []], do: switches = [{opt_name, [:keep|kind]}|switches]
 
       {switches, aliases}
     end)
@@ -509,7 +511,7 @@ defmodule Commando.Parser do
 
   defp check_argument_count(_, []), do: nil
 
-  defp check_argument_count(_, _), do: {:extra, 0}
+  defp check_argument_count(_, [h|_]), do: {:extra, h}
 
 
   defp has_help_cmd(spec) do
@@ -548,17 +550,26 @@ defmodule Commando.Parser do
         opt_spec = Enum.find(spec[:options], fn opt_spec ->
           opt_spec[:name] == option_bin
         end)
-        case opt_spec[:store] do
-          :self ->
-            do_parse_internal(rest, config, [{option, option_bin}|opts], args, spec)
-          {:const, c} ->
-            if value != nil do
+
+        if !opt_spec do
+          parse_internal_end(opts, args, bad)
+        else
+          case check_option_store(option_bin, value, opt_spec[:store]) do
+            {:ok, val} ->
+              do_parse_internal(rest, config, [{option, val}|opts], args, spec)
+
+            :bad_val ->
               parse_internal_end(opts, args, {:value, option, value})
-            else
-              do_parse_internal(rest, config, [{option, c}|opts], args, spec)
-            end
-          nil ->
-            parse_internal_end(opts, args, bad)
+
+            nil ->
+              case check_option_argument(value, opt_spec) do
+                {:ok, val} ->
+                  do_parse_internal(rest, config, [{option, val}|opts], args, spec)
+
+                nil ->
+                  parse_internal_end(opts, args, {:value, option, value})
+              end
+          end
         end
 
       {:error, {_, _, _}=bad, _rest} ->
@@ -574,6 +585,30 @@ defmodule Commando.Parser do
           parse_internal_end(opts, {args, remaining_args}, nil)
         end
     end
+  end
+
+  defp check_option_store(_name, _val, nil) do
+    nil
+  end
+
+  defp check_option_store(name, nil, :self) do
+    {:ok, name}
+  end
+
+  defp check_option_store(_name, nil, {:const, c}) do
+    {:ok, c}
+  end
+
+  defp check_option_store(_name, _val, _) do
+    :bad_val
+  end
+
+  defp check_option_argument(val, %{argoptional: true}) do
+    {:ok, val}
+  end
+
+  defp check_option_argument(nil, _) do
+    :bad_val
   end
 
   defp parse_internal_end(opts, {args, rest}, invalid) do

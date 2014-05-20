@@ -214,16 +214,15 @@ defmodule Commando.Definition do
       {:argname, n} when is_binary(n) ->
         Map.put(arg, :argname, n)
 
-      {:argtype, t} when t in [:boolean, :integer, :float, :string] ->
-        Map.put(arg, :argtype, t)
-
-      {:argtype, {:choice, vals}} when is_list(vals) ->
-        Map.put(arg, :argtype, {:choice, :string, vals})
-
-      {:argtype, {:choice, typ, vals}=t}
-          when is_list(vals)
-           and typ in [:boolean, :integer, :float, :string] ->
-        Map.put(arg, :argtype, t)
+      {:argtype, t} ->
+        case parse_arg_type(t) do
+          :error ->
+            config_error("Bad parameter value for :argtype: #{inspect t}")
+          {typ, :optional} ->
+            Map.merge(arg, %{argtype: typ, argoptional: true})
+          typ ->
+            Map.put(arg, :argtype, typ)
+        end
 
       {:nargs, n} when n in [:inf] ->
         Map.put(arg, :nargs, n)
@@ -241,6 +240,30 @@ defmodule Commando.Definition do
         config_error("Unrecognized parameter #{inspect opt}")
     end
     compile_argument(rest, arg)
+  end
+
+  defp parse_arg_type([typ, :optional]) do
+    case parse_arg_type(typ) do
+      :error -> :error
+      other -> {other, :optional}
+    end
+  end
+
+  defp parse_arg_type(typ) do
+    case typ do
+      t when t in [:boolean, :integer, :float, :string] ->
+        t
+
+      {:choice, vals} when is_list(vals) ->
+        {:choice, :string, vals}
+
+      {:choice, typ, vals}=t
+          when is_list(vals)
+           and typ in [:boolean, :integer, :float, :string] ->
+        t
+
+      _ -> :error
+    end
   end
 
   ###

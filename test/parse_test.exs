@@ -409,6 +409,24 @@ defmodule CommandoTest.ParseTest do
     end
   end
 
+  test "optional option value" do
+    spec = [name: "tool", options: [
+      [name: "exec_path", argtype: [:string, :optional]],
+    ]]
+
+    assert parse(spec, []) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{}
+    }}
+    assert parse(spec, ["--exec-path"]) == {:ok, %Cmd{
+      name: "tool", options: [exec_path: nil], arguments: %{}
+    }}
+    assert_raise RuntimeError, "Unexpected argument: a", fn ->
+      parse(spec, ["--exec-path", "a"])
+    end
+    assert parse(spec, ["--exec-path=a"]) == {:ok, %Cmd{
+      name: "tool", options: [exec_path: "a"], arguments: %{}
+    }}
+  end
 
   test "subcommands" do
     spec = [
