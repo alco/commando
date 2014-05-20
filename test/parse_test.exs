@@ -362,10 +362,15 @@ defmodule CommandoTest.ParseTest do
 
       [name: "earth", store: {:const, 3}, target: "planet"],
       [name: "mars", store: {:const, 4}, target: "planet"],
+
+      [name: "switch", store: {:const, :atom}],
     ]]
 
     assert parse(spec, ["--earth", "--mars", "--earth"]) == {:ok, %Cmd{
       name: "tool", options: [planet: [3, 4, 3]], arguments: %{}
+    }}
+    assert parse(spec, ["--switch", "--mars", "--earth"]) == {:ok, %Cmd{
+      name: "tool", options: [switch: :atom, planet: [4, 3]], arguments: %{}
     }}
   end
 
