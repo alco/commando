@@ -228,7 +228,7 @@ defmodule Commando.Definition do
         Map.put(arg, :nargs, n)
 
       {:required, r} when r in [true, false] ->
-        %{arg | required: r}
+        Map.merge(arg, %{required: r, explicitly_required: true})
 
       {:help, h} when is_binary(h) ->
         %{arg | help: h}
@@ -313,8 +313,12 @@ defmodule Commando.Definition do
     if arg[:argname] == nil do
       arg = Map.put(arg, :argname, name)
     end
-    if arg[:default] && arg[:required] do
-      config_error("Argument parameter :default implies required=false")
+    if arg[:default] do
+      if arg[:required] && arg[:explicitly_required] do
+        config_error("Argument parameter :default implies required=false")
+      else
+        arg = Map.put(arg, :required, false)
+      end
     end
     if arg[:argtype] == nil do
       arg = Map.put(arg, :argtype, :string)
