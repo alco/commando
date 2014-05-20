@@ -58,13 +58,13 @@ defmodule Commando do
 
     [spec[:prefix], spec[:name], option_text, arg_text]
     |> Enum.reject(&( &1 == "" ))
-    |> Enum.join(" ")
+    |> Util.join(" ")
   end
 
   def usage(spec, cmd) when is_binary(cmd) do
     if cmd_spec=Util.command_if_exists(spec, cmd) do
       Map.merge(cmd_spec, %{
-        prefix: Enum.join([spec[:prefix], spec[:name]], " "),
+        prefix: Util.join([spec[:prefix], spec[:name]], " "),
         list_options: spec[:list_options],
       })
       |> usage()
@@ -128,7 +128,7 @@ defmodule Commando do
       |> Enum.reject(&( &1 == nil ))
       |> Enum.map(&String.rstrip/1)
       |> Enum.reject(&( &1 == "" ))
-      |> Enum.join("\n\n")
+      |> Util.join("\n\n")
     if lines != "", do: lines = "\n" <> lines
 
     """
@@ -141,7 +141,7 @@ defmodule Commando do
   def help(%{}=spec, cmd) do
     if cmd_spec=Util.command_if_exists(spec, cmd) do
       Map.merge(cmd_spec, %{
-        prefix: Enum.join([spec[:prefix], spec[:name]], " "),
+        prefix: Util.join([spec[:prefix], spec[:name]], " "),
         list_options: spec[:list_options],
       })
       |> help()
@@ -173,21 +173,21 @@ defmodule Commando do
     do: print_with_indent("", indent)
 
   defp format_option_list(options, indent),
-    do: (Enum.map(options, &format_option_help(&1, indent)) |> Enum.join("\n\n"))
+    do: (Enum.map(options, &format_option_help(&1, indent)) |> Util.join("\n\n"))
 
 
   defp format_command_list(null, indent) when null in [nil, []],
     do: print_with_indent("", indent)
 
   defp format_command_list(commands, indent),
-    do: (Enum.map(commands, &format_command_brief(&1, indent)) |> Enum.join("\n"))
+    do: (Enum.map(commands, &format_command_brief(&1, indent)) |> Util.join("\n"))
 
 
   defp format_argument_list(null, indent) when null in [nil, []],
     do: print_with_indent("", indent)
 
   defp format_argument_list(arguments, indent),
-    do: (Enum.map(arguments, &format_argument_help(&1, indent)) |> Enum.join("\n"))
+    do: (Enum.map(arguments, &format_argument_help(&1, indent)) |> Util.join("\n"))
 
 
   defp format_options(null, _) when null in [nil, []], do: ""
@@ -195,7 +195,7 @@ defmodule Commando do
   defp format_options(_, nil), do: "[options]"
 
   defp format_options(options, list_kind),
-    do: (Enum.map(options, &(format_option(&1, list_kind) |> wrap_option(&1, list_kind))) |> Enum.join(" "))
+    do: (Enum.map(options, &(format_option(&1, list_kind) |> wrap_option(&1, list_kind))) |> Util.join(" "))
 
 
   defp format_option(opt, :short) do
@@ -217,7 +217,7 @@ defmodule Commando do
   defp format_option(opt, :all) do
     [format_option(opt, :short), format_option(opt, :long)]
     |> Enum.reject(&( &1 in [nil, ""] ))
-    |> Enum.join("|")
+    |> Util.join("|")
   end
 
 
@@ -225,12 +225,12 @@ defmodule Commando do
     opt_str =
       [format_option(opt, :short), format_option(opt, :long)]
       |> Enum.reject(&( &1 in [nil, ""] ))
-      |> Enum.join(", ")
+      |> Util.join(", ")
     if help == "", do: help = "(no documentation)"
 
     opt_str = print_with_indent(opt_str, indent)
     help_str = print_with_indent(help, indent + @default_indent)
-    Enum.join([opt_str, help_str], "\n") |> String.rstrip()
+    Util.join([opt_str, help_str], "\n") |> String.rstrip()
   end
 
 
@@ -241,7 +241,7 @@ defmodule Commando do
 
     String.split(str, "\n")
     |> Enum.map(&( indent_str <> &1 ))
-    |> Enum.join("\n")
+    |> Util.join("\n")
   end
 
 
@@ -276,7 +276,7 @@ defmodule Commando do
   defp format_arguments([]), do: ""
 
   defp format_arguments(arguments),
-    do: (Enum.map(arguments, &format_argument/1) |> Enum.join(" "))
+    do: (Enum.map(arguments, &format_argument/1) |> Util.join(" "))
 
 
   defp format_argument(%{argname: name, nargs: :inf, required: true}),

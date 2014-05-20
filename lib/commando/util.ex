@@ -88,7 +88,7 @@ defmodule Commando.Util do
         "Bad option value for #{opt_name_to_bin(name)}: #{val}"
 
       {:bad_opt_choice, {name, val, values}} ->
-        values_str = Enum.join(values, ", ")
+        values_str = join(values, ", ")
         "Bad option value for #{opt_name_to_bin(name)}: #{val}. Has to be one of: #{values_str}"
 
       {:duplicate_opt, name} ->
@@ -101,7 +101,7 @@ defmodule Commando.Util do
         "Bad argument value for <#{name}>: #{val}"
 
       {:bad_arg_choice, {name, val, values}} ->
-        values_str = Enum.join(values, ", ")
+        values_str = join(values, ", ")
         "Bad argument value for <#{name}>: #{val}. Has to be one of: #{values_str}"
 
       {:missing_arg, name} ->
@@ -132,5 +132,13 @@ defmodule Commando.Util do
 
   def is_glob_arg(arg_spec) do
     arg_spec[:nargs] == :inf
+  end
+
+  ##
+
+  def join(list, sep \\ "") do
+    list
+    |> Enum.drop_while(&match?("", &1))
+    |> Enum.join(sep)
   end
 end
