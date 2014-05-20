@@ -91,6 +91,22 @@ defmodule CommandoTest.UsageTest do
     ]) == "tool {-h|--hi}"
   end
 
+  test "multiple short options" do
+    spec = [
+      name: "tool",
+
+      list_options: :short,
+
+      options: [
+        [short: "a", argtype: :boolean],
+        [name: "config"],
+        [short: "b", argtype: :boolean],
+      ],
+    ]
+
+    assert usage(spec) == "tool [-a] [-b]"
+  end
+
   test "options and arguments" do
     assert usage([
       name: "tool",

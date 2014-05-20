@@ -57,7 +57,7 @@ defmodule Commando do
     end
 
     [spec[:prefix], spec[:name], option_text, arg_text]
-    |> Enum.reject(&( &1 == "" ))
+    |> remove_empty()
     |> Util.join(" ")
   end
 
@@ -194,8 +194,12 @@ defmodule Commando do
 
   defp format_options(_, nil), do: "[options]"
 
-  defp format_options(options, list_kind),
-    do: (Enum.map(options, &(format_option(&1, list_kind) |> wrap_option(&1, list_kind))) |> Util.join(" "))
+  defp format_options(options, list_kind) do
+    options
+    |> Enum.map(&(format_option(&1, list_kind) |> wrap_option(&1, list_kind)))
+    |> remove_empty()
+    |> Util.join(" ")
+  end
 
 
   defp format_option(opt, :short) do
@@ -308,5 +312,9 @@ defmodule Commando do
       [{pos, _}] -> elem(String.split_at(str, pos), 0)
       nil        -> str
     end
+  end
+
+  defp remove_empty(list) do
+    Enum.reject(list, &( &1 in [nil, ""] ))
   end
 end
