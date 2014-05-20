@@ -12,15 +12,12 @@ defmodule Commando.Definition do
   }
 
   @opt_defaults %{
-    argtype: :string,
     required: false,
     help: "",
   }
 
   @arg_defaults %{
-    argtype: :string,
     required: true,
-    multival: :accumulate,
     help: "",
   }
 
@@ -148,6 +145,18 @@ defmodule Commando.Definition do
       {:multival, kind} when kind in [:overwrite, :keep, :accumulate, :error] ->
         Map.put(opt, :multival, kind)
 
+      {:target, name} when is_binary(name) ->
+        Map.put(opt, :target, name)
+
+      {:hidden, flag} when flag in [true, false] ->
+        Map.put(opt, :hidden, flag)
+
+      {:store, {:const, _}=s} ->
+        Map.put(opt, :store, s)
+
+      {:store, :self} ->
+        Map.put(opt, :store, :self)
+
       # :action: :store, {:store, val}, :accumulate, :keep
       #          :error?
 
@@ -206,7 +215,15 @@ defmodule Commando.Definition do
         Map.put(arg, :argname, n)
 
       {:argtype, t} when t in [:boolean, :integer, :float, :string] ->
-        %{arg | argtype: t}
+        Map.put(arg, :argtype, t)
+
+      {:argtype, {:choice, vals}} when is_list(vals) ->
+        Map.put(arg, :argtype, {:choice, :string, vals})
+
+      {:argtype, {:choice, typ, vals}=t}
+          when is_list(vals)
+           and typ in [:boolean, :integer, :float, :string] ->
+        Map.put(arg, :argtype, t)
 
       {:nargs, n} when n in [:inf] ->
         Map.put(arg, :nargs, n)
@@ -252,6 +269,15 @@ defmodule Commando.Definition do
     if opt[:default] && opt[:required] do
       config_error("Incompatible option parameters: :default and :required")
     end
+    if opt[:store] do
+      if opt[:argtype] do
+        config_error("Option parameter :argtype is incompatible with :store")
+      end
+    else
+      if opt[:argtype] == nil do
+        opt = Map.put(opt, :argtype, :string)
+      end
+    end
     opt
   end
 
@@ -266,6 +292,9 @@ defmodule Commando.Definition do
     end
     if arg[:default] && arg[:required] do
       config_error("Argument parameter :default implies required=false")
+    end
+    if arg[:argtype] == nil do
+      arg = Map.put(arg, :argtype, :string)
     end
     arg
   end

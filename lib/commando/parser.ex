@@ -16,9 +16,6 @@ defmodule Commando.Parser do
           process_error(reason, config)
         end
 
-      :throw, {:parse_error, [first|_]} ->
-        process_error(first, config)
-
       :throw, {:parse_error, reason} ->
         process_error(reason, config)
     end
@@ -36,31 +33,19 @@ defmodule Commando.Parser do
 
   ###
 
-  defp internal_parse_head(args, opts) do
-    case OptionParser.parse_head(args, opts) do
-      {opts, ["--"|args], []} -> {opts, args, []}
-      other -> other
-    end
-  end
-
-  defp internal_parse(args, opts) do
-    case OptionParser.parse(args, opts) do
-      {opts, ["--"|args], []} -> {opts, args, []}
-      other -> other
-    end
-  end
-
   defp do_parse(args, spec, config) do
-    opts = spec_to_parser_opts(spec)
+    {switches, aliases} = spec_to_parser_opts(spec)
     commands = spec[:commands]
-    {opts, args, invalid} = if is_list(commands) and commands != [] do
-      internal_parse_head(args, opts)
-    else
-      internal_parse(args, opts)
-    end
+    parse_head? = is_list(commands) and commands != []
+    parser_config = [switches: switches, aliases: aliases, strict: true]
 
-    opts = process_opts(opts, invalid, spec, config)
-    args = process_args(args, spec)
+    {opts, args} = case do_parse_internal(args, {parser_config, not parse_head?}, spec) do
+      {opts, args, nil} ->
+        {process_opts(opts, spec, config), process_args(args, spec)}
+
+      {_, _, invalid} ->
+        throw parse_error(process_invalid_opt(invalid))
+    end
 
     topcmd = %Commando.Cmd{
       name: spec[:name],
@@ -88,50 +73,53 @@ defmodule Commando.Parser do
   defp check_opt_error(opts, f) do
     case f.(opts) do
       {opts, []} -> opts
-      {_, bad_opts} -> throw parse_error(bad_opts)
+      {_, [bad|_]} -> throw parse_error(bad)
     end
   end
 
   ###
 
   defp spec_to_parser_opts(%{options: options}) do
-    {s, a} = Enum.reduce(options, {[], []}, fn opt, {switches, aliases} ->
+    Enum.reduce(options, {[], []}, fn opt, {switches, aliases} ->
       opt_name = opt_name_to_atom(opt)
-      kind = []
 
-      if argtype=opt[:argtype], do: kind = [argtype|kind]
-
-      case opt[:multival] do
-        default when default in [nil, :overwrite] ->
-          nil
-        keep when keep in [:keep, :accumulate, :error] ->
-          kind = [:keep|kind]
+      kind = case opt[:argtype] do
+        nil             -> []
+        {:choice, t, _} -> [t]
+        other           -> [other]
       end
-      if kind != [], do: switches = [{opt_name, kind}|switches]
+
+      #case opt[:multival] do
+        #default when default in [nil, :overwrite] ->
+          #nil
+        #keep when keep in [:keep, :accumulate, :error] ->
+          #kind = [:keep|kind]
+      #end
 
       if short=opt[:short] do
         aliases = [{binary_to_atom(short), opt_name}|aliases]
       end
 
+      if kind != [], do: switches = [{opt_name, [:keep|kind]}|switches]
+
       {switches, aliases}
     end)
-    [switches: s, aliases: a]
   end
 
   ###
 
-  defp process_opts(opts, [], spec, config) do
+  defp process_opts(opts, spec, config) do
     opts
-    |> check_opt_error(&filter_undefined_opts(&1, spec))
+    #|> check_opt_error(&filter_undefined_opts(&1, spec))
     |> check_opt_error(&validate_opts(&1, spec))
     |> postprocess_opts(spec)
     |> execute_opts_if_needed(spec, config)
   end
 
-  defp process_opts(_, invalid, spec, _) do
-    invalid = process_invalid_opts(invalid, spec)
-    throw parse_error(invalid)
-  end
+  #defp process_opts(_, invalid, spec, _) do
+    #invalid = process_invalid_opts(invalid, spec)
+    #throw parse_error(invalid)
+  #end
 
 
   defp process_args(args, spec) do
@@ -216,44 +204,30 @@ defmodule Commando.Parser do
 
   ###
 
-  defp process_invalid_opts(invalid, spec) do
-    option_set = Enum.reduce(spec[:options], %{}, fn opt, set ->
-      if short=opt[:short], do:
-        set = Map.put(set, binary_to_atom(short), true)
-      if name=opt[:name], do:
-        set = Map.put(set, binary_to_atom(name), true)
-      set
-    end)
+  defp process_invalid_opt({:undefined, opt, _}),
+    do: {:bad_opt, opt}
 
-    Enum.map(invalid, fn {name, val} ->
-      cond do
-        !option_set[name] ->
-          {:bad_opt, name}
+  defp process_invalid_opt({:value, opt, nil}),
+    do: {:missing_opt_arg, opt}
 
-        spec[:argtype] != :boolean and val in [false, true] ->
-          {:missing_opt_arg, name}
+  defp process_invalid_opt({:value, opt, val}),
+    do: {:bad_opt_value, {opt, val}}
 
-        true ->
-          {:bad_opt_value, {name, val}}
-      end
-    end)
-  end
+  #defp filter_undefined_opts(opts, spec) do
+    ## Check if there are any extraneous switches
+    #option_set = Enum.map(spec[:options], fn opt ->
+      #{opt_name_to_atom(opt), true}
+    #end) |> Enum.into(%{})
 
-  defp filter_undefined_opts(opts, spec) do
-    # Check if there are any extraneous switches
-    option_set = Enum.map(spec[:options], fn opt ->
-      {opt_name_to_atom(opt), true}
-    end) |> Enum.into(%{})
-
-    Enum.reduce(opts, {[], []}, fn {name, _}=opt, {good, bad} ->
-      if !option_set[name] do
-        bad = bad ++ [{:bad_opt, name}]
-      else
-        good = good ++ [opt]
-      end
-      {good, bad}
-    end)
-  end
+    #Enum.reduce(opts, {[], []}, fn {name, _}=opt, {good, bad} ->
+      #if !option_set[name] do
+        #bad = bad ++ [{:bad_opt, name}]
+      #else
+        #good = good ++ [opt]
+      #end
+      #{good, bad}
+    #end)
+  #end
 
   defp validate_opts(opts, spec) do
     # Check all options for consistency with the spec
@@ -276,6 +250,18 @@ defmodule Commando.Parser do
 
             _ -> nil
           end
+
+          case opt_spec[:argtype] do
+            {:choice, _, valid_vals} ->
+              bad = bad ++ Enum.reduce(values, [], fn val, acc ->
+                if not val in valid_vals do
+                  acc = acc ++ [bad_opt_choice: {opt_name, val, valid_vals}]
+                end
+                acc
+              end)
+
+            _ -> nil
+          end
       end
       {opts, bad}
     end)
@@ -283,16 +269,38 @@ defmodule Commando.Parser do
 
   defp postprocess_opts(opts, spec) do
     # Add default values and accumulate repeated options
+    opts = Enum.reduce(opts, [], fn {opt_name, val}, acc ->
+      opt_spec = Enum.find(spec[:options], fn opt_spec ->
+        opt_spec[:name] == atom_to_binary(opt_name)
+      end)
+      if target=opt_spec[:target] do
+        target_key = binary_to_atom(target)
+        acc = acc ++ [{target_key, val}]
+      else
+        acc = acc ++ [{opt_name, val}]
+      end
+      acc
+    end)
+
     Enum.reduce(spec[:options], opts, fn opt_spec, opts ->
       opt_name = opt_name_to_atom(opt_spec)
       if (default=opt_spec[:default]) && not Keyword.has_key?(opts, opt_name) do
         opts = opts ++ [{opt_name, default}]
       end
-      if opt_spec[:multival] == :accumulate do
-        values = Keyword.get_values(opts, opt_name)
-        if values != [] do
-          opts = Keyword.update!(opts, opt_name, fn _ -> values end)
-        end
+      case opt_spec[:multival] do
+        :accumulate ->
+          values = Keyword.get_values(opts, opt_name)
+          if values != [] do
+            opts = Keyword.update!(opts, opt_name, fn _ -> values end)
+          end
+
+        o when o in [nil, :overwrite] ->
+          val = List.last(Keyword.get_values(opts, opt_name))
+          if val != nil do
+            opts = Keyword.update!(opts, opt_name, fn _ -> val end)
+          end
+
+        other when other in [:keep, :error] -> nil
       end
       opts
     end)
@@ -332,6 +340,8 @@ defmodule Commando.Parser do
         {:error, {:missing_arg, name}}
 
       nil ->
+        # Check :choice and value type
+        #Enum.reduce(args)
         {:ok, args}
     end
   end
@@ -451,5 +461,61 @@ defmodule Commando.Parser do
 
   defp parse_error(msg) do
     {:parse_error, msg}
+  end
+
+  ###
+
+  defp do_parse_internal(argv, config, spec) do
+    do_parse_internal(argv, config, [], [], spec)
+  end
+
+  defp do_parse_internal([], _config, opts, args, _spec) do
+    parse_internal_end(opts, args, nil)
+  end
+
+  defp do_parse_internal(argv, {parser_config, all}=config, opts, args, spec) do
+    case OptionParser.next(argv, parser_config) do
+      {:ok, option, value, rest} ->
+        do_parse_internal(rest, config, [{option, value}|opts], args, spec)
+
+      {:error, {:undefined, option, value}=bad, rest} ->
+        option_bin = atom_to_binary(option)
+        opt_spec = Enum.find(spec[:options], fn opt_spec ->
+          opt_spec[:name] == option_bin
+        end)
+        case opt_spec[:store] do
+          :self ->
+            do_parse_internal(rest, config, [{option, option_bin}|opts], args, spec)
+          {:const, c} ->
+            if value != nil do
+              parse_internal_end(opts, args, {:value, option, value})
+            else
+              do_parse_internal(rest, config, [{option, c}|opts], args, spec)
+            end
+          nil ->
+            parse_internal_end(opts, args, bad)
+        end
+
+      {:error, {_, _, _}=bad, _rest} ->
+        parse_internal_end(opts, args, bad)
+
+      {:error, ["--"|rest]} ->
+        parse_internal_end(opts, {args, rest}, nil)
+
+      {:error, [arg|rest]=remaining_args} ->
+        if all do
+          do_parse_internal(rest, config, opts, [arg|args], spec)
+        else
+          parse_internal_end(opts, {args, remaining_args}, nil)
+        end
+    end
+  end
+
+  defp parse_internal_end(opts, {args, rest}, invalid) do
+    {Enum.reverse(opts), Enum.reverse(args, rest), invalid}
+  end
+
+  defp parse_internal_end(opts, args, invalid) do
+    {Enum.reverse(opts), Enum.reverse(args), invalid}
   end
 end

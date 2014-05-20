@@ -337,6 +337,75 @@ defmodule CommandoTest.ParseTest do
     }}
   end
 
+
+  test "option target" do
+    spec = [name: "tool", options: [
+      [name: "planets", multival: :accumulate, hidden: true],
+
+      [name: "earth", store: :self, target: "planets"],
+      [name: "mars", store: :self, target: "planets"],
+    ], arguments: [
+      [name: "planet", nargs: :inf, argtype: {:choice, ["venus", "pluto"]}],
+    ]]
+
+    assert parse(spec, ["--earth", "venus", "--mars", "pluto"]) == {:ok, %Cmd{
+      name: "tool", options: [planets: ["earth", "mars"]], arguments: %{
+        "planet" => ["venus", "pluto"]
+      }
+    }}
+  end
+
+
+  test ":const argtype" do
+    spec = [name: "tool", options: [
+      [name: "planet", multival: :accumulate, hidden: true],
+
+      [name: "earth", store: {:const, 3}, target: "planet"],
+      [name: "mars", store: {:const, 4}, target: "planet"],
+    ]]
+
+    assert parse(spec, ["--earth", "--mars", "--earth"]) == {:ok, %Cmd{
+      name: "tool", options: [planet: [3, 4, 3]], arguments: %{}
+    }}
+  end
+
+
+  test ":self argtype" do
+    spec = [name: "tool", options: [
+      [name: "planet", multival: :accumulate, hidden: true],
+
+      [name: "earth", store: :self, target: "planet"],
+      [name: "mars", store: :self, target: "planet"],
+    ]]
+
+    assert parse(spec, ["--earth", "--mars", "--earth"]) == {:ok, %Cmd{
+      name: "tool", options: [planet: ["earth", "mars", "earth"]], arguments: %{}
+    }}
+  end
+
+
+  test ":choice argtype" do
+    spec = [name: "tool", arguments: [
+      [name: "target", argtype: {:choice, ["i386", "x86_64", "armv7"]}],
+    ], options: [
+      [name: "planet", argtype: {:choice, :integer, [2, 4, 9]}, multival: :accumulate],
+    ]]
+
+    assert parse(spec, ["i386", "--planet", "2", "--planet=9"]) == {:ok, %Cmd{
+      name: "tool", options: [planet: [2, 9]], arguments: %{"target" => "i386"}
+    }}
+
+    msg = "Bad argument value: 386. Has to be one of: i386, x86_64, armv7"
+    assert_raise RuntimeError, msg, fn ->
+      parse(spec, ["386"]) |> IO.inspect
+    end
+    msg = "Bad option value: Pluto. Has to be one of: venus, mars, pluto"
+    assert_raise RuntimeError, msg, fn ->
+      parse(spec, ["--planet", "Pluto", "armv7"])
+    end
+  end
+
+
   test "subcommands" do
     spec = [
       name: "tool",
