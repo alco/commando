@@ -20,8 +20,7 @@ spec = [
 
 defmodule Errors do
   @moduledoc """
-  Implementation of custom error formatting and overriding behaviour for --help
-  and --version options.
+  Implementation of custom error formatting.
 
   Example invocations to try:
 
@@ -40,15 +39,6 @@ defmodule Errors do
       {:ok, cmd} ->
         IO.puts "Did successfully parse the invocation:"
         IO.inspect cmd
-
-        # This needs to wait for an update in OptionParser
-        #if cmd.options[:help] do
-          #IO.puts "--> Pretending to print help"
-        #end
-
-        #if cmd.options[:version] do
-          #IO.puts "--> Pretending to print version"
-        #end
 
       {:error, reason} ->
         case reason do
