@@ -1,9 +1,120 @@
-# Commando
+Commando
+========
 
-** TODO: Add description **
+Create consistent and powerful command-line interfaces (CLIs) for your Elixir
+programs.
+
+Commando gives you a declarative way to define the CLI. It provides advanced
+argument parsing functionality on top of `OptionParser` and automates some of
+the things like printing the help and usage of the program.
+
+---
+
+**Currently unusable**. It relies on this [branch][1] which is not yet merged
+into Elixir master.
+
+  [1]: https://github.com/alco/elixir/compare/option-parser-next
+
+---
+
+## Basic usage
+
+A pretty minimal example of creating a command-line utility with Commando:
+
+```elixir
+spec = [
+  name: "mycat",
+  version: "0.1",
+
+  # this will add a [-h|--help] option to the command
+  help_option: :top_cmd,
+
+  # print only short options in the "usage" line
+  list_options: :short,
+
+  # options start with - or -- and are can be omitted by default
+  options: [
+    # alias for [-V|--version] option
+    {:version, :V},
+
+    [name: "config", help: "Path to the config file"],
+    [name: "verbose", short: "v", argtype: :boolean,
+     help: "Print debug information"],
+  ],
+
+  # arguments are required by default
+  arguments: [
+    [name: "path", help: "Path to the file to print"],
+  ],
+]
+
+cmd = Commando.new(spec)
+IO.inspect Commando.parse(cmd)
+```
+
+Save the above to a file and run it with `mix run <filename>`. For example:
+
+```
+$ mix run mycat.exs --version
+0.1
+
+$ mix run mycat.exs -v
+Missing required argument: <path>
+
+$ mix run mycat.exs -h
+Usage:
+  mycat [-h] [-V] [-v] <path>
+
+Options:
+  -h, --help
+    Print description of the command.
+
+  -V, --version
+    Print version information and exit.
+
+  --config=<config>
+    Path to the config file
+
+  -v, --verbose
+    Print debug information
+
+Arguments:
+  path      Path to the file to print
+
+```
+
+As you can see, Commando generates a help message and handles the `--version`
+and `--help` options automatically. It also handles parsing errors. It is
+possible to customize the default behaviour.
+
+`Commando.parse` returns a `Commando.Cmd` struct containing the parsed
+invocation:
+
+```
+$ mix run mycat.exs -v /
+{:ok, %Commando.Cmd{
+  name: "mycat",
+  options: [verbose: true],
+  arguments: %{"path" => "/"},
+  subcmd: nil
+}}
+```
+
+The `subcmd` field contains the parsed command if one is defined. It will be
+described in a separate section below.
+
+
+## Options
+
+## Arguments
+
+## Commands
+
+---
 
 TODO:
 
 * customizable help and usage formatting options
+* execute --version and --help actions as soon as they are encountered
 
 * REFACTOR ALL THE THINGS!!!
