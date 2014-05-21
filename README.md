@@ -12,10 +12,7 @@ them.
 
 ---
 
-**Currently unusable**. It relies on this [branch][1] which is not yet merged
-into Elixir master.
-
-  [1]: https://github.com/alco/elixir/compare/option-parser-next
+Currently (as of Elixir v0.13.2) relies on master to work.
 
 ---
 

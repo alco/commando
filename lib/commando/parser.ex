@@ -37,7 +37,7 @@ defmodule Commando.Parser do
     {switches, aliases} = spec_to_parser_opts(spec)
     commands = spec[:commands]
     parse_head? = is_list(commands) and commands != []
-    parser_config = [switches: switches, aliases: aliases, strict: true]
+    parser_config = [strict: switches, aliases: aliases]
 
     {opts, args} = case do_parse_internal(args, {parser_config, not parse_head?}, {spec, config}) do
       {opts, args, nil} ->
@@ -260,10 +260,10 @@ defmodule Commando.Parser do
   defp process_invalid_opt({:undefined, opt, _}),
     do: {:bad_opt, opt}
 
-  defp process_invalid_opt({:value, opt, nil}),
+  defp process_invalid_opt({:invalid, opt, nil}),
     do: {:missing_opt_arg, opt}
 
-  defp process_invalid_opt({:value, opt, val}),
+  defp process_invalid_opt({:invalid, opt, val}),
     do: {:bad_opt_value, {opt, val}}
 
   #defp filter_undefined_opts(opts, spec) do
@@ -546,14 +546,14 @@ defmodule Commando.Parser do
         {option, value} = execute_opt_action({option, value}, speconf)
         do_parse_internal(rest, config, [{option, value}|opts], args, speconf)
 
-      {:error, {:undefined, option, value}=bad, rest} ->
+      {:undefined, option, value, rest} ->
         option_bin = atom_to_binary(option)
         opt_spec = Enum.find(spec[:options], fn opt_spec ->
           opt_spec[:name] == option_bin
         end)
 
         if !opt_spec do
-          parse_internal_end(opts, args, bad)
+          parse_internal_end(opts, args, {:undefined, option, value})
         else
           case check_option_store(option_bin, value, opt_spec[:store]) do
             {:ok, val} ->
@@ -561,7 +561,7 @@ defmodule Commando.Parser do
               do_parse_internal(rest, config, [{option, val}|opts], args, speconf)
 
             :bad_val ->
-              parse_internal_end(opts, args, {:value, option, value})
+              parse_internal_end(opts, args, {:invalid, option, value})
 
             nil ->
               case check_option_argument(value, opt_spec) do
@@ -570,13 +570,13 @@ defmodule Commando.Parser do
                   do_parse_internal(rest, config, [{option, val}|opts], args, speconf)
 
                 nil ->
-                  parse_internal_end(opts, args, {:value, option, value})
+                  parse_internal_end(opts, args, {:invalid, option, value})
               end
           end
         end
 
-      {:error, {_, _, _}=bad, _rest} ->
-        parse_internal_end(opts, args, bad)
+      {reason, option, value, _rest} ->
+        parse_internal_end(opts, args, {reason, option, value})
 
       {:error, ["--"|rest]} ->
         parse_internal_end(opts, {args, rest}, nil)
