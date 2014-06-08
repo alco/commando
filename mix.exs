@@ -4,16 +4,14 @@ defmodule Commando.Mixfile do
   def project do
     [app: :commando,
      version: "0.0.1",
-     elixir: "~> 0.13.1",
-     elixirc_paths: ["lib", "example/mix"],
-     deps: deps]
+     elixir: "~> 0.13.3 or ~> 0.14.0",
+     elixirc_paths: ["lib", "example/mix"]]
   end
 
   def application do
-    [applications: []]
-  end
-
-  defp deps do
     []
   end
+
+  # no deps
+  # --alco
 end

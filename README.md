@@ -10,11 +10,6 @@ tasks like printing the help and usage of the program, and lets you build a
 hierarchy of commands (like in `git`, for instance) with actions attached to
 them.
 
----
-
-Currently (as of Elixir v0.13.2) relies on master to work.
-
----
 
 ## Basic usage
 

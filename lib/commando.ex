@@ -241,7 +241,7 @@ defmodule Commando do
   defp print_with_indent(str, indent_width) do
     indent_str =
       :io_lib.format('~*s', [indent_width, ' '])
-      |> String.from_char_data!()
+      |> IO.chardata_to_string()
 
     String.split(str, "\n")
     |> Enum.map(&( indent_str <> &1 ))
@@ -263,7 +263,7 @@ defmodule Commando do
   defp format_command_brief(%{name: name, help: ""}, indent) do
     justified_cmd_str =
       :io_lib.format('~-*s', [10 + @default_indent - indent, name])
-      |> String.from_char_data!()
+      |> IO.chardata_to_string()
     cmd_str = print_with_indent(justified_cmd_str, indent)
     cmd_str <> "(no documentation)"
   end
@@ -271,7 +271,7 @@ defmodule Commando do
   defp format_command_brief(%{name: name, help: help}, indent) do
     justified_cmd_str =
       :io_lib.format('~-*s', [10 + @default_indent - indent, name])
-      |> String.from_char_data!()
+      |> IO.chardata_to_string()
     cmd_str = print_with_indent(justified_cmd_str, indent)
     cmd_str <> first_sentence(help)
   end
@@ -293,7 +293,7 @@ defmodule Commando do
   defp format_argument_help(%{argname: name, help: ""}, indent) do
     justified_arg_str =
       :io_lib.format('~-*s', [10 + @default_indent - indent, name])
-      |> String.from_char_data!()
+      |> IO.chardata_to_string()
     arg_str = print_with_indent(justified_arg_str, indent)
     arg_str <> "(no documentation)"
   end
@@ -301,7 +301,7 @@ defmodule Commando do
   defp format_argument_help(%{argname: name, help: help}, indent) do
     justified_arg_str =
       :io_lib.format('~-*s', [10 + @default_indent - indent, name])
-      |> String.from_char_data!()
+      |> IO.chardata_to_string()
     arg_str = print_with_indent(justified_arg_str, indent)
     arg_str <> help
   end
