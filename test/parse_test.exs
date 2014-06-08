@@ -422,6 +422,10 @@ defmodule CommandoTest.ParseTest do
     assert parse(spec, []) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{}
     }}
+    # FIXME: !!!
+    assert parse(spec, ["--exec_path"]) == {:ok, %Cmd{
+      name: "tool", options: [exec_path: nil], arguments: %{}
+    }}
     assert parse(spec, ["--exec-path"]) == {:ok, %Cmd{
       name: "tool", options: [exec_path: nil], arguments: %{}
     }}

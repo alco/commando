@@ -547,7 +547,8 @@ defmodule Commando.Parser do
         do_parse_internal(rest, config, [{option, value}|opts], args, speconf)
 
       {:undefined, option, value, rest} ->
-        option_bin = atom_to_binary(option)
+        option_bin = option_to_bin(option)
+        option = opt_bin_to_atom(option_bin)
         opt_spec = Enum.find(spec[:options], fn opt_spec ->
           opt_spec[:name] == option_bin
         end)
@@ -576,6 +577,7 @@ defmodule Commando.Parser do
         end
 
       {reason, option, value, _rest} ->
+        option = option_to_bin(option) |> opt_bin_to_atom()
         parse_internal_end(opts, args, {reason, option, value})
 
       {:error, ["--"|rest]} ->
@@ -590,6 +592,15 @@ defmodule Commando.Parser do
           parse_internal_end(opts, {args, [arg|rest]}, nil)
         end
     end
+  end
+
+  # tmp fix
+  defp option_to_bin(option) do
+    String.strip(option, ?-) |> String.replace("-", "_")
+  end
+
+  defp opt_bin_to_atom(bin) do
+     bin |> binary_to_atom()
   end
 
   defp execute_opt_action({option, value}, {spec, config}) do
