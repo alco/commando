@@ -142,6 +142,10 @@ defmodule Commando.Definition do
       {:name, n} when is_atom(n) ->
         Map.put(opt, :name, n)
 
+      {:name, [a, b]} when is_atom(a) and is_atom(b) ->
+        Map.merge(opt, %{name: long_opt_name([a, b]),
+                         short: short_opt_name([a, b])})
+
       {:short, s} when is_atom(s) ->
         Map.put(opt, :short, s)
 
@@ -167,6 +171,20 @@ defmodule Commando.Definition do
         compile_argument([other], opt)
     end
     compile_option(rest, opt)
+  end
+
+  defp long_opt_name(list) do
+    list
+    |> Enum.map(fn atom -> {atom, atom_to_binary(atom)} end)
+    |> Enum.max_by(fn {_, str} -> String.length(str) end)
+    |> elem(0)
+  end
+
+  defp short_opt_name(list) do
+    list
+    |> Enum.map(fn atom -> {atom, atom_to_binary(atom)} end)
+    |> Enum.min_by(fn {_, str} -> String.length(str) end)
+    |> elem(0)
   end
 
 

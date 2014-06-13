@@ -209,6 +209,34 @@ defmodule CommandoTest.ParseTest do
     }}
   end
 
+  test "combined option name" do
+    spec = [name: "tool", options: [
+      [name: [:long_name, :l], argtype: :boolean],
+      [name: [:s, :short], argtype: :boolean],
+    ]]
+    assert parse(spec, []) == {:ok, %Cmd{
+      name: "tool", options: [], arguments: %{}, subcmd: nil
+    }}
+    assert parse(spec, ["-l"]) == {:ok, %Cmd{
+      name: "tool", options: [long_name: true], arguments: %{}, subcmd: nil
+    }}
+    assert parse(spec, ["--long-name"]) == {:ok, %Cmd{
+      name: "tool", options: [long_name: true], arguments: %{}, subcmd: nil
+    }}
+    assert parse(spec, ["--no-long-name"]) == {:ok, %Cmd{
+      name: "tool", options: [long_name: false], arguments: %{}, subcmd: nil
+    }}
+    assert parse(spec, ["-s"]) == {:ok, %Cmd{
+      name: "tool", options: [short: true], arguments: %{}, subcmd: nil
+    }}
+    assert parse(spec, ["--short"]) == {:ok, %Cmd{
+      name: "tool", options: [short: true], arguments: %{}, subcmd: nil
+    }}
+    assert parse(spec, ["--no-short"]) == {:ok, %Cmd{
+      name: "tool", options: [short: false], arguments: %{}, subcmd: nil
+    }}
+  end
+
   test "defaults for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
       [name: :host, short: :h, default: "localhost"],
