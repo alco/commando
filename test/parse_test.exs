@@ -171,6 +171,9 @@ defmodule CommandoTest.ParseTest do
     assert_raise RuntimeError, "Unrecognized option: --bye", fn ->
       parse(spec, ["--bye", "hello"])
     end
+    assert_raise RuntimeError, "Unrecognized option: ---bye", fn ->
+      parse(spec, ["---bye"])
+    end
 
     spec = [name: "tool", options: [[name: :hi, required: true]]]
     assert_raise RuntimeError, "Missing required option: --hi", fn ->

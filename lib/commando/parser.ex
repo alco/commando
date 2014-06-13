@@ -581,7 +581,11 @@ defmodule Commando.Parser do
     if String.contains?(option, "_") do
       throw parse_error({:bad_opt, option})
     end
-    option |> String.strip(?-) |> String.replace("-", "_")
+    case option do
+      "--" <> name -> String.replace(name, "-", "_")
+      "-" <> name  -> String.replace(name, "-", "_")
+      _ -> throw parse_error({:bad_opt, option})
+    end
   end
 
   defp execute_opt_action({opt_name, value}, {spec, config}) do
