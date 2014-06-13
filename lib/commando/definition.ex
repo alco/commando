@@ -29,7 +29,7 @@ defmodule Commando.Definition do
   @help_opt_spec %{
     argtype: :boolean,
     required: false,
-    help: "Print description of the command.",
+    help: "Print help and exit.",
     short: :h,
     name: :help,
   }
@@ -51,7 +51,7 @@ defmodule Commando.Definition do
         name: "command",
         argname: "command",
         required: false,
-        help: "The command to describe. When omitted, help for the tool itself is printed."
+        help: "The command to describe. When omitted, help for the program itself is printed."
       })
     ],
   })
