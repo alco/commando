@@ -43,51 +43,51 @@ defmodule CommandoTest.UsageTest do
 
   test "just options" do
     assert usage([
-      name: "tool", options: [[name: "hi"]],
+      name: "tool", options: [[name: :hi]],
     ]) == "tool [options]"
 
     assert usage([
-      name: "tool", list_options: :short, options: [[name: "hi"]],
+      name: "tool", list_options: :short, options: [[name: :hi]],
     ]) == "tool"
 
     assert usage([
-      name: "tool", list_options: :long, options: [[short: "h"]],
+      name: "tool", list_options: :long, options: [[short: :h]],
     ]) == "tool"
 
     assert usage([
-      name: "tool", list_options: :short, options: [[name: "hi"], [short: "h"]],
+      name: "tool", list_options: :short, options: [[name: :hi], [short: :h]],
     ]) == "tool [-h]"
 
     assert usage([
-      name: "tool", list_options: :long, options: [[name: "hi"], [short: "h"]],
+      name: "tool", list_options: :long, options: [[name: :hi], [short: :h]],
     ]) == "tool [--hi=<hi>]"
 
     assert usage([
-      name: "tool", list_options: :all, options: [[name: "hi"], [short: "h"]],
+      name: "tool", list_options: :all, options: [[name: :hi], [short: :h]],
     ]) == "tool [--hi=<hi>] [-h]"
 
     assert usage([
-      name: "tool", list_options: :all, options: [[name: "hi", short: "h"]],
+      name: "tool", list_options: :all, options: [[name: :hi, short: :h]],
     ]) == "tool [-h <hi>|--hi=<hi>]"
 
     assert usage([
       name: "tool", list_options: :all,
-      options: [[name: "hi", short: "h", argtype: :boolean]],
+      options: [[name: :hi, short: :h, argtype: :boolean]],
     ]) == "tool [-h|--hi]"
 
     assert usage([
       name: "tool", list_options: :short,
-      options: [[name: "hi", short: "h", argtype: :boolean, required: true]],
+      options: [[name: :hi, short: :h, argtype: :boolean, required: true]],
     ]) == "tool -h"
 
     assert usage([
       name: "tool", list_options: :long,
-      options: [[name: "hi", short: "h", argtype: :boolean, required: true]],
+      options: [[name: :hi, short: :h, argtype: :boolean, required: true]],
     ]) == "tool --hi"
 
     assert usage([
       name: "tool", list_options: :all,
-      options: [[name: "hi", short: "h", argtype: :boolean, required: true]],
+      options: [[name: :hi, short: :h, argtype: :boolean, required: true]],
     ]) == "tool {-h|--hi}"
   end
 
@@ -98,9 +98,9 @@ defmodule CommandoTest.UsageTest do
       list_options: :short,
 
       options: [
-        [short: "a", argtype: :boolean],
+        [short: :a, argtype: :boolean],
         [name: "config"],
-        [short: "b", argtype: :boolean],
+        [short: :b, argtype: :boolean],
       ],
     ]
 
@@ -117,7 +117,7 @@ defmodule CommandoTest.UsageTest do
     assert usage([
       name: "tool",
       arguments: [[name: "arg1"], [name: "arg2", required: false]],
-      options: [[name: "hi"], [short: "h", argname: "value"]],
+      options: [[name: :hi], [short: :h, argname: "value"]],
       list_options: :all,
     ]) == "tool [--hi=<hi>] [-h <value>] <arg1> [<arg2>]"
   end
@@ -130,7 +130,7 @@ defmodule CommandoTest.UsageTest do
     spec = prefix ++ [arguments: [[name: "hi"]]]
     assert usage(spec) == "prefix tool <hi>"
 
-    spec = prefix ++ [options: [[name: "hi"]], list_options: :long]
+    spec = prefix ++ [options: [[name: :hi]], list_options: :long]
     assert usage(spec) == "prefix tool [--hi=<hi>]"
   end
 
@@ -138,10 +138,10 @@ defmodule CommandoTest.UsageTest do
     spec = [
       prefix: "pre",
       name: "tool",
-      options: [[name: "log", argtype: :boolean], [short: "v"]],
+      options: [[name: :log, argtype: :boolean], [short: :v]],
       commands: [
-        [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
-        [name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
+        [name: "cmda", options: [[name: :opt_a], [name: :opt_b, required: true]]],
+        [name: "cmdb", options: [[short: :o], [short: :p]], arguments: [[]]],
       ],
     ]
     spec_all = [list_options: :all] ++ spec
@@ -160,11 +160,11 @@ defmodule CommandoTest.UsageTest do
   test "autohelp subcommand" do
     spec = [
       name: "tool",
-      options: [[name: "log", argtype: :boolean], [short: "v"]],
+      options: [[name: :log, argtype: :boolean], [short: :v]],
       commands: [
         :help,
-        [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
-        [name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
+        [name: "cmda", options: [[name: :opt_a], [name: :opt_b, required: true]]],
+        [name: "cmdb", options: [[short: :o], [short: :p]], arguments: [[]]],
       ],
     ]
 

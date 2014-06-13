@@ -31,8 +31,8 @@ spec = [
     # alias for [-V|--version] option
     {:version, :V},
 
-    [name: "config", help: "Path to the config file"],
-    [name: "verbose", short: "v", argtype: :boolean,
+    [name: :config, help: "Path to the config file"],
+    [name: :verbose, short: :v, argtype: :boolean,
      help: "Print debug information"],
   ],
 

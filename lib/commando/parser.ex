@@ -82,7 +82,7 @@ defmodule Commando.Parser do
 
   defp spec_to_parser_opts(%{options: options}) do
     Enum.reduce(options, {[], []}, fn opt, {switches, aliases} ->
-      opt_name = opt_name_to_atom(opt)
+      opt_name = opt_name(opt)
 
       kind = unless opt[:argoptional] do
         case opt[:argtype] do
@@ -100,7 +100,7 @@ defmodule Commando.Parser do
       #end
 
       if short=opt[:short] do
-        aliases = [{binary_to_atom(short), opt_name}|aliases]
+        aliases = [{short, opt_name}|aliases]
       end
 
       if not kind in [nil, []], do: switches = [{opt_name, [:keep|kind]}|switches]
@@ -269,7 +269,7 @@ defmodule Commando.Parser do
   #defp filter_undefined_opts(opts, spec) do
     ## Check if there are any extraneous switches
     #option_set = Enum.map(spec[:options], fn opt ->
-      #{opt_name_to_atom(opt), true}
+      #{opt_name(opt), true}
     #end) |> Enum.into(%{})
 
     #Enum.reduce(opts, {[], []}, fn {name, _}=opt, {good, bad} ->
@@ -285,8 +285,7 @@ defmodule Commando.Parser do
   defp validate_opts(opts, spec) do
     # Check all options for consistency with the spec
     Enum.reduce(spec[:options], {opts, []}, fn opt_spec, {opts, bad} ->
-      opt_name = opt_name_to_atom(opt_spec)
-      #formatted_name = format_option_no_arg(opt_spec)
+      opt_name = opt_name(opt_spec)
       case Keyword.get_values(opts, opt_name) do
         [] ->
           if opt_spec[:required] do
@@ -324,10 +323,10 @@ defmodule Commando.Parser do
     # Add default values and accumulate repeated options
     opts = Enum.reduce(opts, [], fn {opt_name, val}, acc ->
       opt_spec = Enum.find(spec[:options], fn opt_spec ->
-        opt_spec[:name] == atom_to_binary(opt_name)
+        opt_spec[:name] == opt_name
       end)
       if target=opt_spec[:target] do
-        target_key = binary_to_atom(target)
+        target_key = target
         acc = acc ++ [{target_key, val}]
       else
         acc = acc ++ [{opt_name, val}]
@@ -336,7 +335,7 @@ defmodule Commando.Parser do
     end)
 
     Enum.reduce(spec[:options], opts, fn opt_spec, opts ->
-      opt_name = opt_name_to_atom(opt_spec)
+      opt_name = opt_name(opt_spec)
       if (default=opt_spec[:default]) && not Keyword.has_key?(opts, opt_name) do
         opts = opts ++ [{opt_name, default}]
       end
@@ -370,7 +369,7 @@ defmodule Commando.Parser do
 
   defp check_opt_val(val, %{argtype: {:choice, _, values}}=spec) do
     unless val in values do
-      throw parse_error({:bad_opt_choice, {opt_name_to_atom(spec), val, values}})
+      throw parse_error({:bad_opt_choice, {opt_name(spec), val, values}})
     end
   end
 
@@ -450,22 +449,7 @@ defmodule Commando.Parser do
 
   ###
 
-  defp opt_name_to_atom(opt),
-    do: binary_to_atom(opt[:name] || opt[:short])
-
-  ###
-
-  #defp format_option_no_arg(opt) do
-    #cond do
-      #name=opt[:name] ->
-        #"--#{Util.name_to_opt(name)}"
-
-      #short=opt[:short] ->
-        #"-#{Util.name_to_opt(short)}"
-
-      #true -> ""
-    #end
-  #end
+  defp opt_name(opt), do: opt[:name] || opt[:short]
 
   ###
 
@@ -547,18 +531,18 @@ defmodule Commando.Parser do
         do_parse_internal(rest, config, [{option, value}|opts], args, speconf)
 
       {:undefined, option, value, rest} ->
-        option_bin = option_to_bin(option)
-        option = opt_bin_to_atom(option_bin)
+        binopt = binopt(option)
+        opt_name = binary_to_atom(binopt)
         opt_spec = Enum.find(spec[:options], fn opt_spec ->
-          opt_spec[:name] == option_bin
+          opt_spec[:name] == opt_name
         end)
 
         if !opt_spec do
           parse_internal_end(opts, args, {:undefined, option, value})
         else
-          case check_option_store(option_bin, value, opt_spec[:store]) do
+          case check_option_store(binopt, value, opt_spec[:store]) do
             {:ok, val} ->
-              {option, val} = execute_opt_action({option, val}, speconf)
+              {option, val} = execute_opt_action({opt_name, val}, speconf)
               do_parse_internal(rest, config, [{option, val}|opts], args, speconf)
 
             :bad_val ->
@@ -567,7 +551,7 @@ defmodule Commando.Parser do
             nil ->
               case check_option_argument(value, opt_spec) do
                 {:ok, val} ->
-                  {option, val} = execute_opt_action({option, val}, speconf)
+                  {option, val} = execute_opt_action({opt_name, val}, speconf)
                   do_parse_internal(rest, config, [{option, val}|opts], args, speconf)
 
                 nil ->
@@ -577,7 +561,6 @@ defmodule Commando.Parser do
         end
 
       {reason, option, value, _rest} ->
-        option = option_to_bin(option) |> opt_bin_to_atom()
         parse_internal_end(opts, args, {reason, option, value})
 
       {:error, ["--"|rest]} ->
@@ -594,29 +577,26 @@ defmodule Commando.Parser do
     end
   end
 
-  # tmp fix
-  defp option_to_bin(option) do
-    String.strip(option, ?-) |> String.replace("-", "_")
+  defp binopt(option) do
+    if String.contains?(option, "_") do
+      throw parse_error({:bad_opt, option})
+    end
+    option |> String.strip(?-) |> String.replace("-", "_")
   end
 
-  defp opt_bin_to_atom(bin) do
-     bin |> binary_to_atom()
-  end
-
-  defp execute_opt_action({option, value}, {spec, config}) do
-    option_bin = atom_to_binary(option)
+  defp execute_opt_action({opt_name, value}, {spec, config}) do
     opt_spec = Enum.find(spec[:options], fn opt_spec ->
-      opt_spec[:name] == option_bin
+      opt_spec[:name] == opt_name
     end)
     if f=opt_spec[:action] do
-      case f.({option, value}, spec) do
+      case f.({opt_name, value}, spec) do
         :halt -> halt(config, 0)
         {opt, val} ->
-          option = opt
+          opt_name = opt
           value = val
       end
     end
-    {option, value}
+    {opt_name, value}
   end
 
   defp execute_arg_action(arg, arg_spec, {spec, config}) do

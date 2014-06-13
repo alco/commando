@@ -30,16 +30,16 @@ defmodule Commando.Definition do
     argtype: :boolean,
     required: false,
     help: "Print description of the command.",
-    short: "h",
-    name: "help",
+    short: :h,
+    name: :help,
   }
 
   @version_opt_spec %{
     argtype: :boolean,
     required: false,
     help: "Print version information and exit.",
-    short: "v",
-    name: "version",
+    short: :v,
+    name: :version,
   }
 
   @help_cmd_spec Map.merge(@cmd_defaults, %{
@@ -130,7 +130,7 @@ defmodule Commando.Definition do
   defp compile_option(:version), do: @version_opt_spec
 
   defp compile_option({:version, kind}) when kind in [:v, :V],
-    do: Map.put(@version_opt_spec, :short, atom_to_binary(kind))
+    do: Map.put(@version_opt_spec, :short, kind)
 
   defp compile_option(opt), do: compile_option(opt, @opt_defaults)
 
@@ -139,13 +139,16 @@ defmodule Commando.Definition do
 
   defp compile_option([param|rest], opt) do
     opt = case param do
-      {:short, <<_>>=s} ->
+      {:name, n} when is_atom(n) ->
+        Map.put(opt, :name, n)
+
+      {:short, s} when is_atom(s) ->
         Map.put(opt, :short, s)
 
       {:multival, kind} when kind in [:overwrite, :keep, :accumulate, :error] ->
         Map.put(opt, :multival, kind)
 
-      {:target, name} when is_binary(name) ->
+      {:target, name} when is_atom(name) ->
         Map.put(opt, :target, name)
 
       {:hidden, flag} when flag in [true, false] ->

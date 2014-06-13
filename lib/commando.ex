@@ -204,7 +204,7 @@ defmodule Commando do
 
   defp format_option(opt, :short) do
     if short=opt[:short] do
-      name = "-#{Util.name_to_opt(short)}"
+      name = "-#{Util.opt_name_to_binopt(short)}"
       if argname=opt[:argname], do: name = "#{name} <#{argname}>"
       name
     end
@@ -212,7 +212,7 @@ defmodule Commando do
 
   defp format_option(opt, :long) do
     if name=opt[:name] do
-      name = "--#{Util.name_to_opt(name)}"
+      name = "--#{Util.opt_name_to_binopt(name)}"
       if argname=opt[:argname], do: name = "#{name}=<#{argname}>"
       name
     end

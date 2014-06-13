@@ -149,7 +149,7 @@ defmodule CommandoTest.ParseTest do
   end
 
   test "just options" do
-    spec = [name: "tool", options: [[name: "hi"]]]
+    spec = [name: "tool", options: [[name: :hi]]]
     assert parse(spec, []) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{}, subcmd: nil
     }}
@@ -162,6 +162,9 @@ defmodule CommandoTest.ParseTest do
     assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
       parse(spec, ["--hi"])
     end
+    assert_raise RuntimeError, "Unrecognized option: -o", fn ->
+      parse(spec, ["-o"])
+    end
     assert_raise RuntimeError, "Unrecognized option: --bye", fn ->
       parse(spec, ["--bye"])
     end
@@ -169,7 +172,7 @@ defmodule CommandoTest.ParseTest do
       parse(spec, ["--bye", "hello"])
     end
 
-    spec = [name: "tool", options: [[name: "hi", required: true]]]
+    spec = [name: "tool", options: [[name: :hi, required: true]]]
     assert_raise RuntimeError, "Missing required option: --hi", fn ->
       parse(spec, [])
     end
@@ -183,7 +186,7 @@ defmodule CommandoTest.ParseTest do
       name: "tool", options: [hi: "hello"], arguments: %{}, subcmd: nil
     }}
 
-    spec = [name: "tool", options: [[name: "hi", argtype: :integer]]]
+    spec = [name: "tool", options: [[name: :hi, argtype: :integer]]]
     assert_raise RuntimeError, "Missing argument for option: --hi", fn ->
       parse(spec, ["--hi"])
     end
@@ -194,7 +197,7 @@ defmodule CommandoTest.ParseTest do
       name: "tool", options: [hi: 13], arguments: %{}, subcmd: nil
     }}
 
-    spec = [name: "tool", options: [[name: "hi", argtype: :boolean]]]
+    spec = [name: "tool", options: [[name: :hi, argtype: :boolean]]]
     assert_raise RuntimeError, "Bad option value for --hi: hello", fn ->
       parse(spec, ["--hi=hello"])
     end
@@ -208,8 +211,8 @@ defmodule CommandoTest.ParseTest do
 
   test "defaults for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "host", short: "h", default: "localhost"],
-      [name: "port", short: "p", argtype: :integer, default: 1234],
+      [name: :host, short: :h, default: "localhost"],
+      [name: :port, short: :p, argtype: :integer, default: 1234],
     ]]
 
     assert parse(spec, []) == {:ok, %Cmd{
@@ -243,7 +246,7 @@ defmodule CommandoTest.ParseTest do
 
   test ":overwrite modifier for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "mercury", argtype: :boolean, multival: :overwrite],
+      [name: :mercury, argtype: :boolean, multival: :overwrite],
     ]]
 
     assert parse(spec, ["--mercury"]) == {:ok, %Cmd{
@@ -262,8 +265,8 @@ defmodule CommandoTest.ParseTest do
 
   test ":keep modifier for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "mercury", argtype: :boolean, multival: :overwrite],
-      [name: "venus", argtype: :integer, multival: :keep],
+      [name: :mercury, argtype: :boolean, multival: :overwrite],
+      [name: :venus, argtype: :integer, multival: :keep],
     ]]
 
     assert parse(spec, ["--venus=13"]) === {:ok, %Cmd{
@@ -279,8 +282,8 @@ defmodule CommandoTest.ParseTest do
 
   test ":accumulate modifier for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "venus", argtype: :integer, multival: :keep],
-      [name: "earth", argtype: :float, multival: :accumulate],
+      [name: :venus, argtype: :integer, multival: :keep],
+      [name: :earth, argtype: :float, multival: :accumulate],
     ]]
 
     assert parse(spec, ["--earth=13"]) === {:ok, %Cmd{
@@ -296,8 +299,8 @@ defmodule CommandoTest.ParseTest do
 
   test ":error modifier for options" do
     spec = [name: "tool", arguments: [[required: false]], options: [
-      [name: "earth", argtype: :float, multival: :accumulate],
-      [name: "mars", argtype: :string, multival: :error],
+      [name: :earth, argtype: :float, multival: :accumulate],
+      [name: :mars, argtype: :string, multival: :error],
     ]]
 
     assert parse(spec, ["--mars=13"]) == {:ok, %Cmd{
@@ -318,9 +321,9 @@ defmodule CommandoTest.ParseTest do
       [name: "path"],
       [name: "port", required: false]
     ], options: [
-      [name: "earth", argtype: :float],
-      [name: "mars", argtype: :string],
-      [short: "o", argtype: :string, required: true],
+      [name: :earth, argtype: :float],
+      [name: :mars, argtype: :string],
+      [short: :o, argtype: :string, required: true],
     ]]
 
     assert_raise RuntimeError, "Missing required argument: <path>", fn ->
@@ -340,10 +343,10 @@ defmodule CommandoTest.ParseTest do
 
   test "option target" do
     spec = [name: "tool", options: [
-      [name: "planets", multival: :accumulate, hidden: true],
+      [name: :planets, multival: :accumulate, hidden: true],
 
-      [name: "earth", store: :self, target: "planets"],
-      [name: "mars", store: :self, target: "planets"],
+      [name: :earth, store: :self, target: :planets],
+      [name: :mars, store: :self, target: :planets],
     ], arguments: [
       [name: "planet", nargs: :inf, argtype: {:choice, ["venus", "pluto"]}],
     ]]
@@ -358,12 +361,12 @@ defmodule CommandoTest.ParseTest do
 
   test ":const argtype" do
     spec = [name: "tool", options: [
-      [name: "planet", multival: :accumulate, hidden: true],
+      [name: :planet, multival: :accumulate, hidden: true],
 
-      [name: "earth", store: {:const, 3}, target: "planet"],
-      [name: "mars", store: {:const, 4}, target: "planet"],
+      [name: :earth, store: {:const, 3}, target: :planet],
+      [name: :mars, store: {:const, 4}, target: :planet],
 
-      [name: "switch", store: {:const, :atom}],
+      [name: :switch, store: {:const, :atom}],
     ]]
 
     assert parse(spec, ["--earth", "--mars", "--earth"]) == {:ok, %Cmd{
@@ -377,10 +380,10 @@ defmodule CommandoTest.ParseTest do
 
   test ":self argtype" do
     spec = [name: "tool", options: [
-      [name: "planet", multival: :accumulate, hidden: true],
+      [name: :planet, multival: :accumulate, hidden: true],
 
-      [name: "earth", store: :self, target: "planet"],
-      [name: "mars", store: :self, target: "planet"],
+      [name: :earth, store: :self, target: :planet],
+      [name: :mars, store: :self, target: :planet],
     ]]
 
     assert parse(spec, ["--earth", "--mars", "--earth"]) == {:ok, %Cmd{
@@ -393,7 +396,7 @@ defmodule CommandoTest.ParseTest do
     spec = [name: "tool", arguments: [
       [name: "target", argtype: {:choice, ["i386", "x86_64", "armv7"]}],
     ], options: [
-      [name: "planet", argtype: {:choice, :integer, [2, 4, 9]}, multival: :accumulate],
+      [name: :planet, argtype: {:choice, :integer, [2, 4, 9]}, multival: :accumulate],
     ]]
 
     assert parse(spec, ["i386", "--planet", "2", "--planet=9"]) == {:ok, %Cmd{
@@ -416,16 +419,15 @@ defmodule CommandoTest.ParseTest do
 
   test "optional option value" do
     spec = [name: "tool", options: [
-      [name: "exec_path", argtype: [:string, :optional]],
+      [name: :exec_path, argtype: [:string, :optional]],
     ]]
 
     assert parse(spec, []) == {:ok, %Cmd{
       name: "tool", options: [], arguments: %{}
     }}
-    # FIXME: !!!
-    assert parse(spec, ["--exec_path"]) == {:ok, %Cmd{
-      name: "tool", options: [exec_path: nil], arguments: %{}
-    }}
+    assert_raise RuntimeError, "Unrecognized option: --exec_path", fn ->
+      parse(spec, ["--exec_path"])
+    end
     assert parse(spec, ["--exec-path"]) == {:ok, %Cmd{
       name: "tool", options: [exec_path: nil], arguments: %{}
     }}
@@ -453,7 +455,7 @@ defmodule CommandoTest.ParseTest do
     end
 
     spec = [name: "tool", options: [
-      [name: "path", argtype: [:string, :optional], action: opt_action],
+      [name: :path, argtype: [:string, :optional], action: opt_action],
     ], arguments: [
       [name: "word", nargs: :inf, required: false, action: arg_action],
     ]]
@@ -482,10 +484,10 @@ defmodule CommandoTest.ParseTest do
   test "subcommands" do
     spec = [
       name: "tool",
-      options: [[name: "log", argtype: :boolean], [short: "v"]],
+      options: [[name: :log, argtype: :boolean], [short: :v]],
       commands: [
-        [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
-        [name: "cmdb", options: [[short: "v"], [short: "p"]], arguments: [[]]],
+        [name: "cmda", options: [[name: :opt_a], [name: :opt_b, required: true]]],
+        [name: "cmdb", options: [[short: :v], [short: :p]], arguments: [[]]],
       ],
     ]
 

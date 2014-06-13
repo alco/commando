@@ -48,7 +48,7 @@ defmodule CommandoTest.HelpTest do
 
   test "just options" do
     assert help([
-      name: "tool", options: [[name: "hi", help: "This is a hi option."]],
+      name: "tool", options: [[name: :hi, help: "This is a hi option."]],
     ]) == """
       Usage:
         tool [options]
@@ -59,7 +59,7 @@ defmodule CommandoTest.HelpTest do
       """
 
     assert help([
-      name: "tool", list_options: :all, options: [[name: "hi"], [short: "h", help: "A short one."]],
+      name: "tool", list_options: :all, options: [[name: :hi], [short: :h, help: "A short one."]],
     ]) == """
       Usage:
         tool [--hi=<hi>] [-h]
@@ -73,8 +73,8 @@ defmodule CommandoTest.HelpTest do
       """
 
     assert help([
-      name: "tool", list_options: :all, options: [[name: "hi", short: "h"],
-                                                  [short: "p"]],
+      name: "tool", list_options: :all, options: [[name: :hi, short: :h],
+                                                  [short: :p]],
     ]) == """
       Usage:
         tool [-h <hi>|--hi=<hi>] [-p]
@@ -92,7 +92,7 @@ defmodule CommandoTest.HelpTest do
     assert help([
       name: "tool",
       arguments: [[help: "An argument. Second sentence."]],
-      options: [[name: "hi", help: "This is an option."]],
+      options: [[name: :hi, help: "This is an option."]],
     ]) == """
       Usage:
         tool [options] <arg>
@@ -108,7 +108,7 @@ defmodule CommandoTest.HelpTest do
     assert help([
       name: "tool",
       arguments: [[name: "arg1", help: "argument #1"], [name: "arg2", required: false]],
-      options: [[short: "o", required: true, help: "Required option"]],
+      options: [[short: :o, required: true, help: "Required option"]],
       list_options: :all,
     ]) == """
       Usage:
@@ -130,16 +130,16 @@ defmodule CommandoTest.HelpTest do
   test "subcommands" do
     spec = [
       name: "tool",
-      options: [[name: "log", argtype: :boolean], [short: "v"]],
+      options: [[name: :log, argtype: :boolean], [short: :v]],
       commands: [
         [name: "cmda",
          help: "This is command A. It is very practical",
-         options: [[name: "opt_a", help: "Documented option"],
-                   [name: "opt_b", required: true]]],
+         options: [[name: :opt_a, help: "Documented option"],
+                   [name: :opt_b, required: true]]],
 
         [name: "cmdb",
          help: "Command B. Not so practical",
-         options: [[short: "o"], [short: "p"]], arguments: [[]]],
+         options: [[short: :o], [short: :p]], arguments: [[]]],
       ],
     ]
     spec_all = [list_options: :all] ++ spec
@@ -209,16 +209,16 @@ defmodule CommandoTest.HelpTest do
         Commands:
           {{commands}}
         """},
-      options: [[name: "log", argtype: :boolean], [short: "v"]],
+      options: [[name: :log, argtype: :boolean], [short: :v]],
       commands: [
         [name: "cmda",
          help: "This is command A. It is very practical",
-         options: [[name: "opt_a", help: "Documented option"],
-                   [name: "opt_b", required: true]]],
+         options: [[name: :opt_a, help: "Documented option"],
+                   [name: :opt_b, required: true]]],
 
         [name: "cmdb",
          help: "Command B. Not so practical",
-         options: [[short: "o"], [short: "p"]], arguments: [[]]],
+         options: [[short: :o], [short: :p]], arguments: [[]]],
       ],
     ]
 
@@ -249,8 +249,8 @@ defmodule CommandoTest.HelpTest do
       name: "tool",
       commands: [
         :help,
-        [name: "cmda", options: [[name: "opt_a"], [name: "opt_b", required: true]]],
-        [name: "cmdb", options: [[short: "o"], [short: "p"]], arguments: [[]]],
+        [name: "cmda", options: [[name: :opt_a], [name: :opt_b, required: true]]],
+        [name: "cmdb", options: [[short: :o], [short: :p]], arguments: [[]]],
       ],
     ]
 

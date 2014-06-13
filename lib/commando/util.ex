@@ -76,16 +76,16 @@ defmodule Commando.Util do
   def format_error(reason) do
     case reason do
       {:bad_opt, name} ->
-        "Unrecognized option: #{opt_name_to_bin(name)}"
+        "Unrecognized option: #{name}"
 
       {:missing_opt, name} ->
         "Missing required option: #{opt_name_to_bin(name)}"
 
       {:missing_opt_arg, name} ->
-        "Missing argument for option: #{opt_name_to_bin(name)}"
+        "Missing argument for option: #{name}"
 
       {:bad_opt_value, {name, val}} ->
-        "Bad option value for #{opt_name_to_bin(name)}: #{val}"
+        "Bad option value for #{name}: #{val}"
 
       {:bad_opt_choice, {name, val, values}} ->
         values_str = join(values, ", ")
@@ -117,16 +117,17 @@ defmodule Commando.Util do
     end
   end
 
-  defp opt_name_to_bin(name) do
-    opt_name = name_to_opt(atom_to_binary(name))
-    if byte_size(opt_name) > 1 do
-      "--" <> opt_name
+  def opt_name_to_binopt(name),
+    do: name |> atom_to_binary() |> String.replace("_", "-")
+
+  def opt_name_to_bin(name) do
+    bin = opt_name_to_binopt(name)
+    if String.length(bin) == 1 do
+      "-" <> bin
     else
-      "-" <> opt_name
+      "--" <> bin
     end
   end
-
-  def name_to_opt(name), do: String.replace(name, "_", "-")
 
   ##
 

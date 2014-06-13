@@ -7,10 +7,10 @@ spec = [
   options: [
     :version,
 
-    [name: "req",
+    [name: :req,
      argtype: :integer],
 
-    [short: "o"],
+    [short: :o],
   ],
 
   arguments: [

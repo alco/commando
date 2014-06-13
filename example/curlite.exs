@@ -15,23 +15,23 @@ spec = [
   options: [
     {:version, :V},
 
-    [name: "verbose", short: "v",
+    [name: :verbose, short: :v,
      argtype: :boolean,
      help: "Make the operation more talkative"],
 
-    [name: "data", short: "d",
+    [name: :data, short: :d,
      argname: "DATA",
      help: "HTTP POST data"],
 
-    [name: "data_binary",
+    [name: :data_binary,
      argname: "DATA",
      help: "HTTP POST binary data"],
 
-    [name: "head", short: "I",
+    [name: :head, short: :I,
      argtype: :boolean,
      help: "Show document info only"],
 
-    [name: "include", short: "i",
+    [name: :include, short: :i,
      argtype: :boolean,
      help: "Include protocol headers in the output"],
   ],

@@ -23,7 +23,7 @@ commands = [
   [name: "inspect",
    help: "Log incoming requests to stdout, optionally sending a reply back.",
    options: [
-     [name: "reply_file", short: "f",
+     [name: :reply_file, short: :f,
       argname: "path",
       help: inspect_path_help],
    ],
@@ -41,7 +41,7 @@ commands = [
    help: "Serve files from the specified directory, recursively.",
    arguments: [[name: "path", required: false, default: "."]],
    options: [
-     [name: "list", short: "l",
+     [name: :list, short: :l,
       argtype: :boolean,
       help: serve_list_help],
    ],
@@ -74,12 +74,12 @@ spec = [
   options: [
     :version,
 
-    [name: "host", short: "h",
+    [name: :host, short: :h,
      argname: "hostname",
      default: "localhost",
      help: "Hostname to listen on. Accepts extended format with port, e.g. 'localhost:4000'."],
 
-    [name: "port", short: "p",
+    [name: :port, short: :p,
      argtype: :integer,
      default: 1234,
      help: "Port number to listen on."],
