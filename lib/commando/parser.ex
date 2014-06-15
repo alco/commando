@@ -441,6 +441,8 @@ defmodule Commando.Parser do
     if halt?, do: halt(config)
   end
 
+  defp execute_cmd_if_needed(_, _, _, %{exec_actions: false}), do: nil
+
   defp execute_cmd_if_needed(%Cmd{subcmd: %Cmd{}=cmd}=topcmd, %{action: f}, _, _) do
     f.(cmd, topcmd)
   end
@@ -457,6 +459,7 @@ defmodule Commando.Parser do
     case config[:halt] do
       true -> System.halt(status)
       :exit -> exit({Commando, status})
+      :return -> throw parse_error(:halt)
     end
   end
 
@@ -588,6 +591,8 @@ defmodule Commando.Parser do
     end
   end
 
+  defp execute_opt_action(_, {_, %{exec_actions: false}}), do: nil
+
   defp execute_opt_action({opt_name, value}, {spec, config}) do
     opt_spec = Enum.find(spec[:options], fn opt_spec ->
       opt_spec[:name] == opt_name
@@ -602,6 +607,8 @@ defmodule Commando.Parser do
     end
     {opt_name, value}
   end
+
+  defp execute_arg_action(_, _, {_, %{exec_actions: false}}), do: nil
 
   defp execute_arg_action(arg, arg_spec, {spec, config}) do
     if f=arg_spec[:action] do

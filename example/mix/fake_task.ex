@@ -111,6 +111,13 @@ defmodule Mix.Tasks.Faketask do
   alias Commando.Cmd
 
   def run(args) do
+    # FIXME:
+    # if we want to autoexec commands, we also need a way to put actions
+    # on global options after they have all been parsed
+    #
+    # There should probably also exist a middle-ground API:
+    # get all options, process them, then call Command.process_actions
+    # to execute the requested command
     { :ok, %Cmd{options: opts} } = Commando.parse(args, @cmd_spec)
 
     # At this point cmd != nil and opts is a list.

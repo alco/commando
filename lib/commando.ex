@@ -20,20 +20,41 @@ defmodule Commando do
   Parse command-line arguments according to the spec.
   """
   def parse(spec) when is_map(spec),
-    do: parse(System.argv, spec, [])
+    do: parse(System.argv, spec)
 
-  def parse(args, spec) when is_list(args) and is_map(spec),
-    do: parse(args, spec, [])
+  def parse(args, spec) when is_list(args) and is_map(spec) do
+    try do
+      config = Map.put(Util.parse_config, :name, spec[:name])
+      Commando.Parser.parse(args, spec, config)
+    catch
+      :throw, {:config_error, msg} ->
+        raise ArgumentError, message: msg
+    end
+  end
 
-  def parse(spec, opts) when is_map(spec) and is_list(opts),
-    do: parse(System.argv, spec, opts)
 
-  def parse(args, spec, opts)
+  @doc """
+  Parse command-line arguments and take control over the execution.
+
+  This is meant to be used with a command spec. Commands that don't have actions associated with them will error out.
+
+  Is the spec contains arguments instead of commands, the top-level action will be invoked.
+  """
+  def exec(spec) when is_map(spec),
+    do: exec(System.argv, spec, [])
+
+  def exec(args, spec) when is_list(args) and is_map(spec),
+    do: exec(args, spec, [])
+
+  def exec(spec, opts) when is_map(spec) and is_list(opts),
+    do: exec(System.argv, spec, opts)
+
+  def exec(args, spec, opts)
     when is_list(args) and is_map(spec) and is_list(opts)
   do
     try do
       config =
-        Util.compile_config(opts)
+        Util.compile_exec_config(opts)
         |> Map.put(:name, spec[:name])
       Commando.Parser.parse(args, spec, config)
     catch

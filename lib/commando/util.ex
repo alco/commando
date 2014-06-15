@@ -1,27 +1,35 @@
 defmodule Commando.Util do
   @moduledoc false
 
-  @config_default %{
+  @parse_config %{
+    halt: :return,
+    format_errors: :return,
+    exec_actions: true,
+    exec_version: false,
+    exec_help: false,
+  }
+
+  @exec_config_default %{
     halt: true,
     format_errors: :report,
+    exec_actions: true,
     exec_version: true,
     exec_help: true,
   }
 
-  def compile_config(opts),
-    do: compile_config(@config_default, opts)
+  def parse_config, do: @parse_config
 
-  defp compile_config(config, []), do: config
+  def compile_exec_config(opts),
+    do: compile_exec_config(@exec_config_default, opts)
 
-  defp compile_config(config, [param|rest]) do
+  defp compile_exec_config(config, []), do: config
+
+  defp compile_exec_config(config, [param|rest]) do
     config = case param do
-      {:autoexec, val} ->
-        compile_autoexec_param(config, val)
-
-      {:halt, val} when val in [true, :exit] ->
+      {:halt, val} when val in [true, :exit, :return] ->
         Map.put(config, :halt, val)
 
-      {:on_error, val} when val in [:report, :return, :raise] ->
+      {:on_error, val} when val in [:report, :raise] ->
         Map.put(config, :format_errors, val)
 
       #{:on_error, {f, _state}=handler} when is_function(f, 2) ->
@@ -30,31 +38,7 @@ defmodule Commando.Util do
       opt ->
         config_error("Unrecognized config option #{inspect opt}")
     end
-    compile_config(config, rest)
-  end
-
-
-  defp compile_autoexec_param(config, param) do
-    config = Map.merge(config, %{
-      exec_help: false, exec_version: false
-    })
-    case param do
-      flag when flag in [true, false] ->
-        Map.merge(config, %{exec_help: flag, exec_version: flag})
-
-      :help ->
-        Map.put(config, :exec_help, true)
-
-      :version ->
-        Map.put(config, :exec_version, true)
-
-      list when is_list(list) ->
-        Enum.reduce(list, config, fn
-          p, config when p in [:help, :version, :commands] ->
-            compile_autoexec_param(config, p)
-          other, _ -> config_error("Invalid :autoexec parameter value: #{other}")
-        end)
-    end
+    compile_exec_config(config, rest)
   end
 
   ###

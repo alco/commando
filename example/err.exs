@@ -32,7 +32,7 @@ defmodule Errors do
   @cmd_spec Commando.new(spec)
 
   def run() do
-    case Commando.parse(@cmd_spec, on_error: :return, autoexec: false) do
+    case Commando.parse(@cmd_spec) do
       {:ok, cmd} ->
         IO.puts "Did successfully parse the invocation:"
         IO.inspect cmd

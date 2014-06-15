@@ -53,11 +53,11 @@ defmodule Curlite do
   @cmd_spec Commando.new(spec)
 
   def run() do
-    # Commando.parse parses System.argv by default
+    # Commando.exec parses System.argv by default
     {:ok, %Commando.Cmd{
       options: opts,
       arguments: %{"url" => addr},
-    }} = Commando.parse(@cmd_spec)
+    }} = Commando.exec(@cmd_spec)
 
     process_command(opts, addr)
   end
