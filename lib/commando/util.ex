@@ -142,4 +142,14 @@ defmodule Commando.Util do
     |> Enum.drop_while(&match?("", &1))
     |> Enum.join(sep)
   end
+
+  ##
+
+  def info(text) do
+    IO.puts IO.ANSI.escape(text)
+  end
+
+  def error(text) do
+    IO.puts :stderr, IO.ANSI.escape("%{red,bright}#{text}")
+  end
 end

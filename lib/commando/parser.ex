@@ -10,7 +10,7 @@ defmodule Commando.Parser do
     catch
       :throw, {:parse_error, :missing_cmd=reason} ->
         if config[:exec_help] and (has_help_cmd(spec) or has_help_opt(spec)) do
-          IO.puts Commando.help(spec)
+          Util.info Commando.help(spec)
           halt(config, 2)
         else
           process_error(reason, config)
@@ -26,7 +26,7 @@ defmodule Commando.Parser do
       :return -> {:error, reason}
       :raise -> raise RuntimeError, message: Util.format_error(reason)
       :report ->
-        IO.puts Util.format_error(reason)
+        Util.error Util.format_error(reason)
         halt(config, 1)
     end
   end
@@ -380,15 +380,15 @@ defmodule Commando.Parser do
     if Keyword.get(opts, :help) != nil and config[:exec_help] do
       cmd_name = spec[:name]
       if cmd_name == config[:name] do
-        IO.puts Commando.help(spec)
+        Util.info Commando.help(spec)
       else
-        IO.puts Commando.help(spec, cmd_name)
+        Util.info Commando.help(spec, cmd_name)
       end
       halt(config)
     end
 
     if Keyword.get(opts, :version) != nil and config[:exec_version] do
-      IO.puts spec[:version]
+      Util.info spec[:version]
       halt(config)
     end
 
@@ -428,14 +428,14 @@ defmodule Commando.Parser do
     halt? = try do
       case args do
         %{"command" => cmd} ->
-          IO.puts Commando.help(spec, cmd)
+          Util.info Commando.help(spec, cmd)
 
         %{} ->
-          IO.puts Commando.help(spec)
+          Util.info Commando.help(spec)
       end
     rescue
       e in [ArgumentError] ->
-        IO.puts e.message
+        Util.error e.message
         halt(config, 1)
     end
     if halt?, do: halt(config)
