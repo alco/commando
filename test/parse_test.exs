@@ -613,7 +613,7 @@ defmodule CommandoTest.ParseTest do
       Print description of the given command.
 
       Arguments:
-        command   The command to describe. When omitted, help for the tool itself is printed.
+        command   The command to describe. When omitted, help for the program itself is printed.
 
       """
 
