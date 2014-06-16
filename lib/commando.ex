@@ -53,9 +53,8 @@ defmodule Commando do
     when is_list(args) and is_map(spec) and is_list(opts)
   do
     try do
-      config =
-        Util.compile_exec_config(opts)
-        |> Map.put(:name, spec[:name])
+      {config, spec} = Util.compile_exec_config(opts, spec)
+      config = Map.put(config, :name, spec[:name])
       Commando.Parser.parse(args, spec, config)
     catch
       :throw, {:config_error, msg} ->

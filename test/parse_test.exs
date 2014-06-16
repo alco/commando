@@ -479,6 +479,7 @@ defmodule CommandoTest.ParseTest do
       opt, _spec -> opt
     end
 
+    # FIXME: don't support argument actions???
     arg_action = fn
       {name, val}=arg, _spec ->
         IO.write "Got value #{val} for arg #{name}"
@@ -509,7 +510,7 @@ defmodule CommandoTest.ParseTest do
       assert parse(spec, ["--path=a", "b"]) == {:ok, %Cmd{
         name: "tool", options: [path: "a"], arguments: %{"word" => ["b"]}
       }}
-    end) == "Got value b for arg word"
+    end) == ""
   end
 
   test "subcommands" do
@@ -557,6 +558,32 @@ defmodule CommandoTest.ParseTest do
         name: "cmdb", options: [v: "1", p: "2"], arguments: %{"arg" => "hello"}, subcmd: nil
       }
     }}
+  end
+
+  test "command actions" do
+    spec = [
+      name: "tool",
+      commands: [
+        [name: "cmda"],
+        [name: "cmdb"],
+        [name: "cmdnull"],
+      ],
+    ]
+
+    import ExUnit.CaptureIO
+
+    config = [actions: [
+      commands: %{
+        "cmda" => fn _, _ -> IO.write "Command A" end,
+        "cmdb" => fn _, _ -> IO.write "Command B" end,
+      }]
+    ]
+    # FIXME: implement the exception
+    #assert_raise RuntimeError, "Action for 'cmdnull' is not defined", fn ->
+      #exec(spec, ["cmdnull"], config)
+    #end
+    assert capture_io(fn -> exec(spec, ["cmda"], config) end) == "Command A"
+    assert capture_io(fn -> exec(spec, ["cmdb"], config) end) == "Command B"
   end
 
   @tag slowpoke: true

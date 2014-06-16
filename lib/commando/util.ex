@@ -4,7 +4,7 @@ defmodule Commando.Util do
   @parse_config %{
     halt: :return,
     format_errors: :return,
-    exec_actions: true,
+    exec_actions: false,
     exec_version: false,
     exec_help: false,
   }
@@ -19,12 +19,12 @@ defmodule Commando.Util do
 
   def parse_config, do: @parse_config
 
-  def compile_exec_config(opts),
-    do: compile_exec_config(@exec_config_default, opts)
+  def compile_exec_config(opts, spec),
+    do: compile_exec_config(@exec_config_default, opts, spec)
 
-  defp compile_exec_config(config, []), do: config
+  defp compile_exec_config(config, [], spec), do: {config, spec}
 
-  defp compile_exec_config(config, [param|rest]) do
+  defp compile_exec_config(config, [param|rest], spec) do
     config = case param do
       {:halt, val} when val in [true, :exit, :return] ->
         Map.put(config, :halt, val)
@@ -35,10 +35,46 @@ defmodule Commando.Util do
       #{:on_error, {f, _state}=handler} when is_function(f, 2) ->
         #Map.put(config, :error_handler, handler)
 
+      {:actions, val} when is_list(val) ->
+        spec = compile_actions(val, spec)
+        config
+
       opt ->
         config_error("Unrecognized config option #{inspect opt}")
     end
-    compile_exec_config(config, rest)
+    compile_exec_config(config, rest, spec)
+  end
+
+  defp compile_actions(action_spec, spec) do
+    Enum.reduce(action_spec, spec, fn
+      {:commands, map}, spec when is_map(map) ->
+        compile_command_actions(map, spec)
+      {:options, map}, spec when is_map(map) ->
+        compile_option_actions(map, spec)
+      key, _ ->
+        config_error("Invalid action entry: #{inspect key}")
+    end)
+  end
+
+  defp compile_command_actions(map, spec) do
+    Enum.reduce(map, spec, fn
+      {key, val}, spec when is_binary(key) and is_function(val, 2) ->
+        index = Enum.find_index(spec.commands, &(&1.name == key))
+        if !index do
+          config_error("Unrecognized command: #{key}")
+        end
+        cmdspec = Enum.at(spec.commands, index)
+        Map.update!(spec, :commands, fn list ->
+          List.replace_at(list, index, Map.put(cmdspec, :action, val))
+        end)
+        #put_in(spec.commands[index][:action], val)
+      other, _ ->
+        config_error("Invalid command action entry: #{inspect other}")
+    end)
+  end
+
+  defp compile_option_actions(_map, spec) do
+    spec
   end
 
   ###

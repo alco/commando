@@ -156,7 +156,5 @@ TODO:
 * customizable help and usage formatting options
 * execute --version and --help actions as soon as they are encountered
 * allow passing the help string through a filter (like Mix.shell.info)
-* it would be nice to assign actions to the commands outside of the declarative
-  CLI definition
 
 * REFACTOR ALL THE THINGS!!!
