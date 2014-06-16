@@ -156,5 +156,6 @@ TODO:
 * customizable help and usage formatting options
 * execute --version and --help actions as soon as they are encountered
 * allow passing the help string through a filter (like Mix.shell.info)
+* callback-based API for the help messages
 
 * REFACTOR ALL THE THINGS!!!
