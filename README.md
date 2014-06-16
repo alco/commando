@@ -54,8 +54,7 @@ spec = [
     {:version, :V},
 
     [name: :config, argname: "path", help: "Path to the config file"],
-    [name: [:verbose, :v], argtype: :boolean,
-     help: "Print debug information"],
+    [name: [:verbose, :v], argtype: :boolean, help: "Print debug information"],
   ],
 
   # arguments are required by default
@@ -108,8 +107,10 @@ also handles parsing errors. It is possible to customize the default behaviour.
 Alternatively, you can use the `parse()` function to get a `Commando.Cmd`
 struct containing the parsed invocation:
 
-```
-$ mix run mycat.exs -v /
+```elixir
+cmd = Commando.new(spec)
+Commando.parse(["-v", "/"], cmd)
+# result:
 {:ok, %Commando.Cmd{
   name: "mycat",
   options: [verbose: true],
