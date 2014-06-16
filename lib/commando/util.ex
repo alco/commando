@@ -60,12 +60,10 @@ defmodule Commando.Util do
     Enum.reduce(map, spec, fn
       {key, val}, spec when is_binary(key) and is_function(val, 2) ->
         index = Enum.find_index(spec.commands, &(&1.name == key))
-        if !index do
-          config_error("Unrecognized command: #{key}")
-        end
-        cmdspec = Enum.at(spec.commands, index)
-        Map.update!(spec, :commands, fn list ->
-          List.replace_at(list, index, Map.put(cmdspec, :action, val))
+        if !index, do: config_error("Unrecognized command: #{key}")
+
+        update_in(spec.commands, fn list ->
+          List.update_at(list, index, &Map.put(&1, :action, val))
         end)
         #put_in(spec.commands[index][:action], val)
       other, _ ->
