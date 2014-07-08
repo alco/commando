@@ -535,7 +535,7 @@ defmodule Commando.Parser do
 
       {:undefined, option, value, rest} ->
         binopt = binopt(option)
-        opt_name = binary_to_atom(binopt)
+        opt_name = String.to_atom(binopt)
         opt_spec = Enum.find(spec[:options], fn opt_spec ->
           opt_spec[:name] == opt_name
         end)

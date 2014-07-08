@@ -175,14 +175,14 @@ defmodule Commando.Definition do
 
   defp long_opt_name(list) do
     list
-    |> Enum.map(fn atom -> {atom, atom_to_binary(atom)} end)
+    |> Enum.map(fn atom -> {atom, Atom.to_string(atom)} end)
     |> Enum.max_by(fn {_, str} -> String.length(str) end)
     |> elem(0)
   end
 
   defp short_opt_name(list) do
     list
-    |> Enum.map(fn atom -> {atom, atom_to_binary(atom)} end)
+    |> Enum.map(fn atom -> {atom, Atom.to_string(atom)} end)
     |> Enum.min_by(fn {_, str} -> String.length(str) end)
     |> elem(0)
   end

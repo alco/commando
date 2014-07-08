@@ -136,7 +136,7 @@ defmodule Commando.Util do
   end
 
   def opt_name_to_binopt(name),
-    do: name |> atom_to_binary() |> String.replace("_", "-")
+    do: name |> Atom.to_string() |> String.replace("_", "-")
 
   def opt_name_to_bin(name) do
     bin = opt_name_to_binopt(name)
