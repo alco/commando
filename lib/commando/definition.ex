@@ -310,7 +310,7 @@ defmodule Commando.Definition do
     if opt[:argname] == nil and opt[:argtype] != :boolean and name != nil do
       opt = Map.put(opt, :argname, name)
     end
-    if opt[:default] && opt[:required] do
+    if opt[:default] != nil && opt[:required] do
       config_error("Incompatible option parameters: :default and :required")
     end
     if opt[:store] do
