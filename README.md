@@ -200,3 +200,7 @@ TODO:
 * callback-based API for the help messages
 
 * REFACTOR ALL THE THINGS!!!
+
+## License
+
+This software is licensed under [the MIT license](LICENSE).
